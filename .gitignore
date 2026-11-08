@@ -6,3 +6,19 @@ Builds/
 Logs/ 
 UserSettings/ 
 MemoryCaptures/ 
+
+# Visual Studio
+.vs/
+.idea/
+.gradle/
+
+# Generated Project Files
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+
+# Operating System
+.DS_Store
+Thumbs.db
