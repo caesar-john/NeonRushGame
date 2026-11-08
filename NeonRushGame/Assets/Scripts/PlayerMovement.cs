@@ -2,97 +2,47 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("Movement Speeds")]
-    [SerializeField] float moveSpeed = 5f;
-    [SerializeField] float sideSpeed = 10f;
-    [SerializeField] float laneDistance = 3f; 
+    [Header("Movement Settings")]
+    [SerializeField] private float forwardSpeed = 8f;   // Kecepatan maju Z
+    [SerializeField] private float laneDistance = 3f;    // Jarak antar jalur (misal: X = -3, 0, 3)
+    [SerializeField] private float laneChangeSpeed = 15f; // Kehalusan pindah jalur
 
-    [Header("Track Status")]
- 
-    [SerializeField] int trackNumber = 1;
-    [SerializeField] bool currentMove = false;
-    [SerializeField] int moveDirection = 0; 
-
-    private float targetXPos;
+    // 0 = Kiri (-3), 1 = Tengah (0), 2 = Kanan (3)
+    [SerializeField] private int targetLane = 1;
 
     void Update()
     {
-        
-        if (!currentMove)
+        // 1. Deteksi Tombol Tanpa Mengunci CurrentMove
+        // Pemain bisa spam tombol A/D secepat mungkin
+        if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow))
         {
-           
-            if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow))
+            if (targetLane > 0)
             {
-                LeftMove();
+                targetLane--;
             }
-            
-            else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow))
+        }
+        else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            if (targetLane < 2)
             {
-                RightMove();
+                targetLane++;
             }
         }
     }
 
     void FixedUpdate()
     {
-        
-        transform.Translate(Vector3.forward * Time.fixedDeltaTime * moveSpeed, Space.World);
+        // 2. Hitung target posisi X berdasarkan targetLane
+        float targetX = (targetLane - 1) * laneDistance;
 
-        float currentX = transform.position.x;
-        float currentZ = transform.position.z;
+        // 3. Posisikan X secara mulus menggunakan Lerp
+        Vector3 currentPos = transform.position;
+        float newX = Mathf.Lerp(currentPos.x, targetX, laneChangeSpeed * Time.fixedDeltaTime);
 
-      
-        if (currentMove && moveDirection == 1)
-        {
-            transform.Translate(Vector3.left * Time.fixedDeltaTime * sideSpeed, Space.World);
+        // 4. Pergerakan Maju Otomatis di Sumbu Z
+        float newZ = currentPos.z + (forwardSpeed * Time.fixedDeltaTime);
 
-            
-            if (transform.position.x <= targetXPos)
-            {
-                StopMove(targetXPos, currentZ);
-            }
-        }
-
-        
-        if (currentMove && moveDirection == 2)
-        {
-            transform.Translate(Vector3.right * Time.fixedDeltaTime * sideSpeed, Space.World);
-            if (transform.position.x >= targetXPos)
-            {
-                StopMove(targetXPos, currentZ);
-            }
-        }
-    }
-
-    public void LeftMove()
-    {
-        if (trackNumber > 0) 
-        {
-            trackNumber--;
-            SetTargetAndMove(1);
-        }
-    }
-
-    public void RightMove()
-    {
-        if (trackNumber < 2) 
-        {
-            trackNumber++;
-            SetTargetAndMove(2);
-        }
-    }
-
-    private void SetTargetAndMove(int direction)
-    {
-        currentMove = true;
-        moveDirection = direction;
-        targetXPos = (trackNumber - 1) * laneDistance;
-    }
-
-    private void StopMove(float x, float z)
-    {
-        currentMove = false;
-        moveDirection = 0;
-        transform.position = new Vector3(x, transform.position.y, z);
+        // 5. Terapkan Posisi Baru
+        transform.position = new Vector3(newX, currentPos.y, newZ);
     }
 }
