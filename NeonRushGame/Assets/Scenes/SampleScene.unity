@@ -131,6 +131,7 @@ GameObject:
   - component: {fileID: 330585545}
   - component: {fileID: 330585544}
   - component: {fileID: 330585547}
+  - component: {fileID: 330585548}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -205,8 +206,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -46.6}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0.213, y: 1.512, z: -46.96}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -256,6 +257,20 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!114 &330585548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330585543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 904cc00a2287c9349afeef703778f860, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  player: {fileID: 920711544}
+  offset: {x: 0, y: 3, z: -6}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -544,6 +559,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &920711544 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8023936146350900589, guid: 9468a4d3a94769e4991365ce3a2cdf85, type: 3}
+  m_PrefabInstance: {fileID: 1259617574303147219}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1586444830
 GameObject:
   m_ObjectHideFlags: 0
@@ -794,7 +814,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8023936146350900589, guid: 9468a4d3a94769e4991365ce3a2cdf85, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -44.08
+      value: -43.94
       objectReference: {fileID: 0}
     - target: {fileID: 8023936146350900589, guid: 9468a4d3a94769e4991365ce3a2cdf85, type: 3}
       propertyPath: m_LocalRotation.w
@@ -833,10 +853,10 @@ PrefabInstance:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 330585546}
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 1634692695}
   - {fileID: 1586444834}
   - {fileID: 488045245}
   - {fileID: 1259617574303147219}
+  - {fileID: 330585546}
