@@ -3,46 +3,51 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     [Header("Movement Settings")]
-    [SerializeField] private float forwardSpeed = 8f;   // Kecepatan maju Z
-    [SerializeField] private float laneDistance = 3f;    // Jarak antar jalur (misal: X = -3, 0, 3)
-    [SerializeField] private float laneChangeSpeed = 15f; // Kehalusan pindah jalur
+    public float forwardSpeed = 8f;
+    public float laneDistance = 3f;
+    public float laneChangeSpeed = 15f;
+    public int targetLane = 1; // 0: Kiri, 1: Tengah, 2: Kanan
 
-    // 0 = Kiri (-3), 1 = Tengah (0), 2 = Kanan (3)
-    [SerializeField] private int targetLane = 1;
+    private Rigidbody rb;
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.freezeRotation = true; // Kunci rotasi agar tidak guling
+        }
+    }
 
     void Update()
     {
-        // 1. Deteksi Tombol Tanpa Mengunci CurrentMove
-        // Pemain bisa spam tombol A/D secepat mungkin
-        if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow))
+        // Tangkap input keyboard secara real-time di Update
+        if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
         {
-            if (targetLane > 0)
-            {
-                targetLane--;
-            }
+            if (targetLane < 2) targetLane++;
         }
-        else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow))
+        else if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
         {
-            if (targetLane < 2)
-            {
-                targetLane++;
-            }
+            if (targetLane > 0) targetLane--;
         }
     }
 
     void FixedUpdate()
     {
-        // 2. Hitung target posisi X berdasarkan targetLane
-        float targetX = (targetLane - 1) * laneDistance;
-
-        // 3. Posisikan X secara mulus menggunakan Lerp
+        // 1. Hitung target jalur Z
+        float targetZ = (targetLane - 1) * laneDistance;
         Vector3 currentPos = transform.position;
-        float newX = Mathf.Lerp(currentPos.x, targetX, laneChangeSpeed * Time.fixedDeltaTime);
 
-        // 4. Pergerakan Maju Otomatis di Sumbu Z
-        float newZ = currentPos.z + (forwardSpeed * Time.fixedDeltaTime);
+        // 2. Geser Z secara mulus menggunakan Time.fixedDeltaTime
+        float newZ = Mathf.Lerp(currentPos.z, targetZ, laneChangeSpeed * Time.fixedDeltaTime);
 
-        // 5. Terapkan Posisi Baru
+        // 3. Maju ke arah sumbu -X
+        float newX = currentPos.x - (forwardSpeed * Time.fixedDeltaTime);
+
+        // 4. Perbarui posisi sekaligus agar tidak macet di tengah jalan
         transform.position = new Vector3(newX, currentPos.y, newZ);
+
+        // 5. Paksa rotasi tetap tegak lurus sempurna
+        transform.rotation = Quaternion.identity;
     }
 }

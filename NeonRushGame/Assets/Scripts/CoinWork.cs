@@ -3,7 +3,6 @@ using UnityEngine;
 
 public class CoinWork : MonoBehaviour
 {
-    // 1. Variabel
     [SerializeField] private bool collectedCoin = false;
     [SerializeField] private float rotateSpeed = 100f;
     [SerializeField] private float floatUpSpeed = 6f;
@@ -11,7 +10,6 @@ public class CoinWork : MonoBehaviour
     private Animator anim;
     private Collider coinCollider;
 
-    // 2. Fungsi bawaan Unity (Start & Update)
     void Start()
     {
         anim = GetComponent<Animator>();
@@ -20,37 +18,43 @@ public class CoinWork : MonoBehaviour
 
     void Update()
     {
-        transform.Rotate(0, rotateSpeed * Time.deltaTime, 0, Space.World);
-
-        if (collectedCoin)
+        // Koin HANYA berputar jika BELUM diambil
+        if (!collectedCoin)
         {
+            transform.Rotate(0, rotateSpeed * Time.deltaTime, 0, Space.World);
+        }
+        else
+        {
+            // Begitu diambil, koin melayang naik ke atas
             transform.Translate(Vector3.up * floatUpSpeed * Time.deltaTime, Space.World);
         }
     }
 
-    // 3. Fungsi Pemicu Tabrakan (Dipanggil Saat Player Menyentuh Koin)
     void OnTriggerEnter(Collider other)
     {
+        // Cek apakah yang menabrak adalah Player dan koin ini BELUM diambil
         if (other.CompareTag("Player") && !collectedCoin)
         {
             collectedCoin = true;
 
-            if (coinCollider != null) coinCollider.enabled = false;
+            // Langsung matikan Collider khusus koin ini saja agar tidak terdeteksi ganda
+            if (coinCollider != null)
+            {
+                coinCollider.enabled = false;
+            }
 
             if (anim != null)
             {
                 anim.Play("Shrink");
             }
 
-            // Memanggil IEnumerator DeleteCoin() di bawahnya
             StartCoroutine(DeleteCoin());
         }
     }
 
-    // 4. Coroutine Jeda Penghapusan Koin
     IEnumerator DeleteCoin()
     {
         yield return new WaitForSeconds(0.5f);
-        gameObject.SetActive(false);
+        gameObject.SetActive(false); // Menonaktifkan koin setelah 0.5 detik
     }
 }
