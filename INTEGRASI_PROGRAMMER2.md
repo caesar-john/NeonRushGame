@@ -317,3 +317,31 @@ Cukup salin dari folder hasil integrasi ke repo kalian:
   gameplay.
 - Audio dibuat prosedural (bebas hak cipta) dan bisa diganti lewat komponen
   `AudioManager` di scene Game/MainMenu.
+
+---
+
+## 10. Map NeonCity dari Game Designer
+
+Map dipasang sebagai **latar** (bukan lintasan) agar gameplay Programmer 2
+tetap utuh dan file milik Game Designer tidak diubah sama sekali.
+
+- Yang disalin hanya aset yang benar-benar dirujuk `Assets/NeonCity.unity`
+  (157 file, ±171 MB) beserta `.meta` aslinya, jadi GUID tetap sama.
+- `Assets/NeonCity.unity` + `ProjectSettings/EditorBuildSettings.asset`
+  (ditambahkan sebagai scene ke-4, setelah Sandbox).
+- `Assets/Scripts/Programmer2/Integration/NeonCityBackdrop.cs` memuat scene
+  `NeonCity` secara aditif hanya saat scene `Game` aktif, lalu:
+  - mematikan Camera, AudioListener, Light, EventSystem, Canvas, dan Volume
+    milik map supaya tidak bentrok dengan scene Game;
+  - mematikan semua Collider map supaya tidak menghalangi Player;
+  - memutar map -90° agar jalan raya yang memanjang di sumbu X menjadi searah
+    lintasan (Z), lalu menggesernya memakai posisi `Lane_Marking` agar bagian
+    tengah jalan tepat di bawah jalur Player;
+  - menggandakan map 2x memanjang agar kota tetap terlihat selama permainan.
+- Kalau ingin menyetel posisi, ubah konstanta di bagian atas
+  `NeonCityBackdrop.cs` (`BackdropYaw`, `StreetSurfaceY`, `StartOffsetZ`,
+  `CopyCount`, `CopyGap`).
+- Satu prefab di scene map (`Barrier-03 (2)`) tidak ikut ter-commit di branch
+  Game Designer, jadi Unity akan menandainya sebagai prefab hilang. Ini kondisi
+  dari branch asal, bukan akibat integrasi.
+
