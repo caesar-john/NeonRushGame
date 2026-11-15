@@ -29,12 +29,17 @@ public class PlayerSpeedBridge : MonoBehaviour
             }
         }
 
-        if (movementSource == null) return;
+        if (movementSource == null)
+        {
+            Debug.LogWarning("[PlayerSpeedBridge] Komponen gerak tidak ditemukan. Kecepatan Player tidak akan disinkronkan dengan DifficultyManager.", this);
+            return;
+        }
 
         speedField = movementSource.GetType().GetField("forwardSpeed", BindingFlags.Instance | BindingFlags.NonPublic);
         if (speedField == null || speedField.FieldType != typeof(float))
         {
             speedField = null;
+            Debug.LogWarning($"[PlayerSpeedBridge] Field 'forwardSpeed' tidak ditemukan di {movementSource.GetType().Name}. Kecepatan Player tidak akan disinkronkan.", this);
             return;
         }
 

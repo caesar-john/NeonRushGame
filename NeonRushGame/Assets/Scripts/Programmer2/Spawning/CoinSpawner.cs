@@ -40,11 +40,11 @@ public class CoinSpawner : MonoBehaviour
     [SerializeField] private int minCoins = 5;
     [SerializeField] private int maxCoins = 8;
     [SerializeField] private float coinSpacing = 2.5f;
-    [SerializeField] private float arcHeight = 1.4f;
+    [SerializeField] private float arcHeight = 0.35f;
 
     [Header("Jarak Spawn")]
     [SerializeField] private float firstPatternDistance = 25f;
-    [SerializeField] private float spawnAheadDistance = 65f;
+    [SerializeField] private float spawnAheadDistance = 60f;
     [SerializeField] private float minPatternGap = 10f;
     [SerializeField] private float maxPatternGap = 18f;
     [SerializeField] private float despawnBehindDistance = 15f;
@@ -132,7 +132,7 @@ public class CoinSpawner : MonoBehaviour
 
             Vector3 position = new Vector3(x, y, z);
 
-            if (Physics.CheckSphere(position, obstacleCheckRadius, obstacleLayerMask, QueryTriggerInteraction.Ignore))
+            if (Physics.CheckSphere(position, obstacleCheckRadius, obstacleLayerMask, QueryTriggerInteraction.Collide))
                 continue;
 
             GameObject coin = PoolManager.Spawn(coinPrefab, position, Quaternion.identity, transform);

@@ -365,9 +365,9 @@ public static class NeonRushSceneBuilder
         followPlayer.offset = new Vector3(0f, 4.5f, -8.5f);
 
         GameObject floorObject = new GameObject("FloorCollider", typeof(BoxCollider));
-        floorObject.transform.position = new Vector3(0f, 0.3f, 120f);
+        floorObject.transform.position = new Vector3(0f, 0.3f, 9900f);
         BoxCollider floorCollider = floorObject.GetComponent<BoxCollider>();
-        floorCollider.size = new Vector3(9f, 0.4f, 600f);
+        floorCollider.size = new Vector3(9f, 0.4f, 20000f);
 
         GameObject systemsObject = new GameObject("GameSystems");
         TileSpawner tileSpawner = systemsObject.AddComponent<TileSpawner>();
@@ -451,8 +451,9 @@ public static class NeonRushSceneBuilder
         SetPrivateInt(coinSpawner, "minCoins", 5);
         SetPrivateInt(coinSpawner, "maxCoins", 8);
         SetPrivateFloat(coinSpawner, "coinSpacing", 2.5f);
+        SetPrivateFloat(coinSpawner, "arcHeight", 0.35f);
         SetPrivateFloat(coinSpawner, "firstPatternDistance", 25f);
-        SetPrivateFloat(coinSpawner, "spawnAheadDistance", 80f);
+        SetPrivateFloat(coinSpawner, "spawnAheadDistance", 60f);
 
         SetPrivateObject(hud, "scoreText", scoreText);
         SetPrivateObject(hud, "distanceText", distanceText);
@@ -529,7 +530,7 @@ public static class NeonRushSceneBuilder
         CreateButton(menuPanel.transform, "QuitButton", "KELUAR", new Vector2(0f, -200f), uiManager.QuitGame);
 
         CreateText(menuPanel.transform, "Controls",
-            "A / D  pindah jalur     SPASI  lompat     S  slide     ESC  pause", 26f,
+            "A / D  pindah jalur     ESC  pause", 26f,
             TextAlignmentOptions.Center, new Color(0.75f, 0.8f, 0.9f),
             new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(1600f, 40f));
 
