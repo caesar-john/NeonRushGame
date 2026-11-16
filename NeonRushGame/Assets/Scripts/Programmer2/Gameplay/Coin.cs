@@ -28,7 +28,15 @@ public class Coin : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other == null || !IsPlayer(other)) return;
+        Debug.Log("Koin tersentuh oleh: " + other.name);
+
+        if (other == null || !IsPlayer(other))
+        {
+            Debug.Log("Objek bukan Player");
+            return;
+        }
+
+        Debug.Log("Player terdeteksi!");
         Collect();
     }
 

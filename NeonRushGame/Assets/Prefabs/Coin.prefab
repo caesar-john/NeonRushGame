@@ -100,7 +100,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4131606741511315883}
   - component: {fileID: 5558383646021031274}
-  - component: {fileID: 8098428417950116707}
+  - component: {fileID: 8187507045775637162}
   m_Layer: 0
   m_Name: Coin
   m_TagString: Untagged
@@ -145,7 +145,7 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.45
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &8098428417950116707
+--- !u!114 &8187507045775637162
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
