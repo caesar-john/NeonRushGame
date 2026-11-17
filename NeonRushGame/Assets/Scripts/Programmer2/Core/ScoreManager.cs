@@ -20,7 +20,7 @@ public class ScoreManager : MonoBehaviour
     public event Action<int> BestScoreChanged;
 
     private Transform player;
-    private float startZ;
+    private Vector3 startPosition;
     private int lastDisplayedDistance = -1;
     private bool subscribed;
 
@@ -66,7 +66,7 @@ public class ScoreManager : MonoBehaviour
             if (player == null) return;
         }
 
-        Distance = Mathf.Max(0f, player.position.z - startZ);
+        Distance = RunProgress.Measure(player);
 
         int meters = Mathf.FloorToInt(Distance);
         if (meters != lastDisplayedDistance)
@@ -81,7 +81,8 @@ public class ScoreManager : MonoBehaviour
     private void OnRunStarted()
     {
         if (GameManager.Instance != null) player = GameManager.Instance.Player;
-        startZ = player != null ? player.position.z : 0f;
+        startPosition = player != null ? player.position : Vector3.zero;
+        RunProgress.Reset(startPosition);
         Distance = 0f;
         Score = 0;
         lastDisplayedDistance = 0;

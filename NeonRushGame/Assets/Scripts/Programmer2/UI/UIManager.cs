@@ -110,6 +110,11 @@ public class UIManager : MonoBehaviour
 #endif
     }
 
+    public void SetGameScene(string sceneName)
+    {
+        if (!string.IsNullOrEmpty(sceneName)) gameScene = sceneName;
+    }
+
     private void OnStateChanged(GameState state)
     {
         SetActive(mainMenuPanel, state == GameState.Menu);

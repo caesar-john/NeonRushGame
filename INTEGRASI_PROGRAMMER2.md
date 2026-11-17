@@ -331,16 +331,26 @@ tetap utuh dan file milik Game Designer tidak diubah sama sekali.
   (ditambahkan sebagai scene ke-4, setelah Sandbox).
 - `Assets/Scripts/Programmer2/Integration/NeonCityBackdrop.cs` memuat scene
   `NeonCity` secara aditif hanya saat scene `Game` aktif, lalu:
-  - mematikan Camera, AudioListener, Light, EventSystem, Canvas, dan Volume
-    milik map supaya tidak bentrok dengan scene Game;
-  - mematikan semua Collider map supaya tidak menghalangi Player;
-  - memutar map -90° agar jalan raya yang memanjang di sumbu X menjadi searah
-    lintasan (Z), lalu menggesernya memakai posisi `Lane_Marking` agar bagian
-    tengah jalan tepat di bawah jalur Player;
-  - menggandakan map 2x memanjang agar kota tetap terlihat selama permainan.
+  - mematikan root `Main Camera`, `EventSystem`, `Canvas_HUD`, dan
+    `Directional Light` milik map. Light map dimatikan karena scene `Game`
+    sudah punya directional light sendiri (arah dan warnanya sama);
+  - mematikan Camera, AudioListener, EventSystem, dan Canvas yang tersarang,
+    plus semua Collider map, supaya tidak bentrok dengan scene Game;
+  - mempertahankan `Global Volume` map (Bloom, Tonemapping, Vignette) dan
+    menyalakan `renderPostProcessing` pada kamera game lewat kode;
+  - memutar map +90° (kamera designer menghadap -X) agar arah pandang kota
+    sama dengan arah lari pemain (+Z), jadi billboard menghadap ke pemain;
+  - memusatkan map memakai posisi segmen `Street_4Lane` (bukan marka lajur)
+    dan menurunkan permukaan jalan map ke y = -0,08 agar tidak menutupi jalan
+    P2 yang permukaannya di y = 0;
+  - menyembunyikan semua koin dekorasi map (`Coin_Gold_Lightning`) dan
+    mematikan renderer yang menembus koridor jalur (mobil/barrier di tengah
+    jalan), tanpa mengubah aset map;
+  - mulai 20 m di belakang Player. Penggandaan map dimatikan dulu
+    (`CopyCount = 1`).
 - Kalau ingin menyetel posisi, ubah konstanta di bagian atas
   `NeonCityBackdrop.cs` (`BackdropYaw`, `StreetSurfaceY`, `StartOffsetZ`,
-  `CopyCount`, `CopyGap`).
+  `CopyCount`, `CopyGap`, `ClearanceHalfWidth`).
 - Satu prefab di scene map (`Barrier-03 (2)`) tidak ikut ter-commit di branch
   Game Designer, jadi Unity akan menandainya sebagai prefab hilang. Ini kondisi
   dari branch asal, bukan akibat integrasi.

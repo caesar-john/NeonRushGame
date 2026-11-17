@@ -1,0 +1,519 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+// Map desainer di scene "Game" berjalan di sumbu X negatif. Di scene itu
+// penanda koin masih berupa GameObject kosong, lantai masih memakai ukuran
+// map lama (+Z), dan TileSpawner lama masih aktif. Skrip ini merapikan
+// semuanya saat runtime tanpa mengubah scene milik rekan.
+[AddComponentMenu("Neon Rush/Integration/Game Scene Adapter")]
+public class NeonGameSceneAdapter : MonoBehaviour
+{
+    private const string SceneName = "Game";
+    private const string LegacySceneName = "GameNeonCity";
+    private const string EnvironmentName = "Environment";
+    private const string CoinMarkerName = "coin";
+    private const string CoinVisualPrefix = "Coin_Gold_Lightning";
+    private const string FloorName = "FloorCollider";
+    private const string TilesName = "Tiles";
+
+    private const float CoinRowOffsetZ = -10.5f;
+    private const float CoinHeight = 1.6f;
+    private const float CoinSkipSpawnSqr = 9f;
+
+    private const float FloorLength = 20000f;
+    private const float FloorWidth = 90f;
+    private const float FloorThickness = 0.4f;
+    private const float FloorCenterY = 0.3f;
+
+    private const int SegmentCopies = 2;
+    private const float SegmentBehindBuffer = 40f;
+
+    private sealed class Segment
+    {
+        public Transform root;
+        public float minX;
+        public float maxX;
+    }
+
+    private static bool bootstrapped;
+
+    private readonly List<Segment> segments = new List<Segment>();
+    private float segmentLength;
+    private int rearIndex;
+    private int frontIndex;
+    private Transform followPlayer;
+    private bool tiling;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void Bootstrap()
+    {
+        if (bootstrapped) return;
+        bootstrapped = true;
+
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        OnSceneLoaded(SceneManager.GetActiveScene(), LoadSceneMode.Single);
+    }
+
+    private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (!scene.IsValid() || !scene.isLoaded) return;
+        if (scene.name != SceneName) return;
+        if (FindAnyObjectByType<NeonGameSceneAdapter>() != null) return;
+
+        GameObject host = new GameObject("NeonGameSceneAdapter");
+        // Kalau scene Game dimuat additif dari scene lain, GameObject baru
+        // otomatis masuk ke scene aktif. Pindahkan ke scene Game agar tidak
+        // ikut hancur saat scene lama dibuang.
+        SceneManager.MoveGameObjectToScene(host, scene);
+        host.AddComponent<NeonGameSceneAdapter>();
+    }
+
+    private void Awake()
+    {
+        // Dijalankan segera saat scene Game termuat, sebelum alur lama sempat
+        // mengubah kamera/lantai (urutan Start bisa lebih lambat).
+        TakeOver();
+        DisableLegacySpawners(gameObject.scene);
+    }
+
+    private void Start()
+    {
+        // Semua pencarian objek dibatasi ke scene Game. GameObject.Find global
+        // bisa mengambil objek milik scene GameNeonCity yang sedang di-unload,
+        // sehingga koin/map yang dipakai justru map lama yang lalu hancur.
+        Scene scene = gameObject.scene;
+
+        GameObject environment = FindSceneObject(scene, EnvironmentName);
+        if (environment == null)
+        {
+            Debug.LogWarning("[NeonGameSceneAdapter] Root 'Environment' tidak ditemukan di scene " + SceneName + ".", this);
+            return;
+        }
+
+        EnsureFloor(scene);
+        RunProgress.SetAxis(0);
+
+        followPlayer = ResolvePlayer();
+        Vector3 spawnPoint = followPlayer != null ? followPlayer.position : Vector3.zero;
+
+        if (followPlayer != null)
+        {
+            NeonRunnerCamera.Install(followPlayer);
+            Debug.Log("[NeonGameSceneAdapter] Player awal " + spawnPoint + ", rotasi " + followPlayer.eulerAngles +
+                      ". Kamera chase dipasang.", this);
+        }
+
+        BuildCoins(environment.transform, spawnPoint);
+        BeginTiling(environment.transform);
+    }
+
+    // Scene GameNeonCity adalah alur lama (lari ke +Z, map diputar 90 derajat).
+    // Begitu scene Game dimuat, alur lama dihentikan dan scene-nya dibuang agar
+    // hanya map desainer yang tampil dan kamera chase tidak direbut.
+    private static void TakeOver()
+    {
+        NeonCityGameplay[] legacyDrivers = FindObjectsByType<NeonCityGameplay>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < legacyDrivers.Length; i++)
+        {
+            if (legacyDrivers[i] != null) Destroy(legacyDrivers[i].gameObject);
+        }
+
+        NeonCityCameraRig[] legacyRigs = FindObjectsByType<NeonCityCameraRig>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < legacyRigs.Length; i++)
+        {
+            if (legacyRigs[i] != null) legacyRigs[i].enabled = false;
+        }
+
+        Scene game = SceneManager.GetSceneByName(SceneName);
+        Scene legacyScene = SceneManager.GetSceneByName(LegacySceneName);
+
+        if (legacyScene.IsValid() && legacyScene.isLoaded)
+        {
+            if (SceneManager.GetActiveScene() == legacyScene && game.IsValid() && game.isLoaded)
+                SceneManager.SetActiveScene(game);
+
+            SceneManager.UnloadSceneAsync(legacyScene);
+        }
+
+        if (!game.IsValid() || !game.isLoaded) return;
+
+        // UIManager bisa saja sudah diarahkan ke GameNeonCity oleh alur lama;
+        // arahkan kembali ke scene Game supaya Restart tidak membuka map lama.
+        UIManager[] managers = FindObjectsByType<UIManager>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < managers.Length; i++)
+        {
+            if (managers[i] != null) managers[i].SetGameScene(SceneName);
+        }
+
+        // Alur lama mematikan kamera & lampu milik scene Game. Nyalakan lagi
+        // agar kamera chase punya sasaran.
+        GameObject[] roots = game.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            if (roots[i] == null) continue;
+            if (roots[i].name == "Main Camera" || roots[i].name == "Directional Light")
+                roots[i].SetActive(true);
+        }
+    }
+
+    // Jaga-jaga: alur lama bisa mematikan root "Main Camera" satu frame setelah
+    // TakeOver. Nyalakan kembali selama beberapa detik pertama.
+    private static void WatchCameraRoot()
+    {
+        if (Time.unscaledTime > 5f) return;
+
+        Scene game = SceneManager.GetSceneByName(SceneName);
+        if (!game.IsValid() || !game.isLoaded) return;
+
+        GameObject[] roots = game.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            if (roots[i] != null && roots[i].name == "Main Camera" && !roots[i].activeSelf)
+                roots[i].SetActive(true);
+        }
+    }
+
+    private static Transform ResolvePlayer()
+    {
+        if (GameManager.Instance != null && GameManager.Instance.Player != null)
+            return GameManager.Instance.Player;
+
+        GameObject found = GameObject.FindGameObjectWithTag("Player");
+        return found != null ? found.transform : null;
+    }
+
+    // GameObject.Find hanya mencari objek aktif dan bisa mengembalikan objek
+    // milik scene lain. Helper ini hanya melihat scene yang diminta, termasuk
+    // objek yang sedang nonaktif.
+    private static GameObject FindSceneObject(Scene scene, string name)
+    {
+        if (!scene.IsValid() || !scene.isLoaded) return null;
+
+        GameObject[] roots = scene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            if (roots[i] == null) continue;
+            if (roots[i].name == name) return roots[i];
+
+            Transform[] children = roots[i].GetComponentsInChildren<Transform>(true);
+            for (int j = 0; j < children.Length; j++)
+            {
+                if (children[j] != null && children[j].name == name) return children[j].gameObject;
+            }
+        }
+
+        return null;
+    }
+
+    private void LateUpdate()
+    {
+        WatchCameraRoot();
+        if (!tiling || followPlayer == null || segments.Count < 2) return;
+
+        float behind = followPlayer.position.x + SegmentBehindBuffer;
+        int guard = 0;
+
+        while (segments[rearIndex].minX > behind && guard++ < segments.Count)
+        {
+            Segment rear = segments[rearIndex];
+            Segment front = segments[frontIndex];
+
+            if (rear.root == null || front.root == null)
+            {
+                tiling = false;
+                return;
+            }
+
+            rear.root.position = front.root.position + Vector3.left * segmentLength;
+            rear.minX = front.minX - segmentLength;
+            rear.maxX = front.maxX - segmentLength;
+
+            ReactivateCoins(rear.root);
+
+            frontIndex = rearIndex;
+            rearIndex = (rearIndex + 1) % segments.Count;
+        }
+    }
+
+    // Koin yang sudah diambil dimatikan (SetActive false). Saat segmen peta
+    // didaur ulang ke depan, koin itu dinyalakan lagi agar lintasan tetap berisi.
+    private static void ReactivateCoins(Transform root)
+    {
+        NeonCoinPickup[] pickups = root.GetComponentsInChildren<NeonCoinPickup>(true);
+        for (int i = 0; i < pickups.Length; i++)
+        {
+            GameObject coin = pickups[i].gameObject;
+            if (!coin.activeSelf) coin.SetActive(true);
+        }
+
+        CoinWork[] coins = root.GetComponentsInChildren<CoinWork>(true);
+        for (int i = 0; i < coins.Length; i++)
+        {
+            GameObject coin = coins[i].gameObject;
+            if (!coin.activeSelf) coin.SetActive(true);
+        }
+    }
+
+    // Spawner lama menaruh koin/rintangan di sumbu +Z (map lama). Di map
+    // desainer pemain berlari ke -X, jadi spawner lama dimatikan sebelum Start
+    // agar tidak menumpuk objek di tempat yang salah.
+    private static void DisableLegacySpawners(Scene scene)
+    {
+        TileSpawner[] tileSpawners = FindObjectsByType<TileSpawner>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < tileSpawners.Length; i++)
+        {
+            if (tileSpawners[i] != null && tileSpawners[i].gameObject.scene == scene) tileSpawners[i].enabled = false;
+        }
+
+        CoinSpawner[] coinSpawners = FindObjectsByType<CoinSpawner>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < coinSpawners.Length; i++)
+        {
+            if (coinSpawners[i] != null && coinSpawners[i].gameObject.scene == scene) coinSpawners[i].enabled = false;
+        }
+
+        ObstacleSpawner[] obstacleSpawners = FindObjectsByType<ObstacleSpawner>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < obstacleSpawners.Length; i++)
+        {
+            if (obstacleSpawners[i] != null && obstacleSpawners[i].gameObject.scene == scene) obstacleSpawners[i].enabled = false;
+        }
+
+        GameObject tiles = FindSceneObject(scene, TilesName);
+        if (tiles != null) tiles.SetActive(false);
+    }
+
+    // Lantai lama hanya selebar jalur +Z (9 x 600), sehingga pemain jatuh saat
+    // mulai berlari ke arah -X. Ganti ukurannya agar menutup seluruh lintasan.
+    private static void EnsureFloor(Scene scene)
+    {
+        GameObject floor = FindSceneObject(scene, FloorName);
+        if (floor != null)
+        {
+            BoxCollider box = floor.GetComponent<BoxCollider>();
+            if (box != null)
+            {
+                box.center = Vector3.zero;
+                box.size = new Vector3(FloorLength, FloorThickness, FloorWidth);
+                floor.transform.rotation = Quaternion.identity;
+                floor.transform.localScale = Vector3.one;
+                floor.transform.position = new Vector3(0f, FloorCenterY, 0f);
+                return;
+            }
+        }
+
+        GameObject created = new GameObject(FloorName);
+        if (scene.IsValid() && scene.isLoaded) SceneManager.MoveGameObjectToScene(created, scene);
+        created.transform.position = new Vector3(0f, FloorCenterY, 0f);
+        BoxCollider createdBox = created.AddComponent<BoxCollider>();
+        createdBox.size = new Vector3(FloorLength, FloorThickness, FloorWidth);
+    }
+
+    // Koin desainer sudah tersusun rapi dan tegak di sepanjang jalan pada z yang
+    // sejajar jalur pemain; yang belum ada hanya trigger. Jadi visual koin yang
+    // ada langsung dijadikan koin interaktif, tanpa membuat salinan visual.
+    private void BuildCoins(Transform environment, Vector3 spawnPoint)
+    {
+        Transform[] children = environment.GetComponentsInChildren<Transform>(true);
+        int converted = 0;
+
+        for (int i = 0; i < children.Length; i++)
+        {
+            Transform candidate = children[i];
+            if (!IsCoinVisualRoot(candidate, environment)) continue;
+            if (!MakeCollectible(candidate, spawnPoint)) continue;
+            converted++;
+        }
+
+        if (converted > 0)
+        {
+            Debug.Log("[NeonGameSceneAdapter] " + converted + " koin visual dijadikan koin interaktif.", this);
+            return;
+        }
+
+        Debug.LogWarning("[NeonGameSceneAdapter] Visual koin tidak ditemukan, memakai penanda 'coin' sebagai ganti.", this);
+        BuildCoinsFromMarkers(environment, spawnPoint);
+    }
+
+    private static bool IsCoinVisualRoot(Transform candidate, Transform environment)
+    {
+        if (candidate == null) return false;
+        if (!candidate.name.StartsWith(CoinVisualPrefix, System.StringComparison.Ordinal)) return false;
+        if (candidate.GetComponentInChildren<Renderer>(true) == null) return false;
+
+        Transform parent = candidate.parent;
+        while (parent != null && parent != environment)
+        {
+            if (parent.name.StartsWith(CoinVisualPrefix, System.StringComparison.Ordinal)) return false;
+            parent = parent.parent;
+        }
+
+        return true;
+    }
+
+    private static bool MakeCollectible(Transform coin, Vector3 spawnPoint)
+    {
+        if (coin == null) return false;
+        if ((coin.position - spawnPoint).sqrMagnitude < CoinSkipSpawnSqr) return false;
+
+        Collider[] colliders = coin.GetComponents<Collider>();
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            colliders[i].enabled = false;
+        }
+
+        if (coin.GetComponent<NeonCoinPickup>() == null) coin.gameObject.AddComponent<NeonCoinPickup>();
+
+        return true;
+    }
+
+    private void BuildCoinsFromMarkers(Transform environment, Vector3 spawnPoint)
+    {
+        List<Transform> markers = new List<Transform>();
+        Transform[] children = environment.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < children.Length; i++)
+        {
+            if (IsCoinMarker(children[i])) markers.Add(children[i]);
+        }
+
+        for (int i = 0; i < markers.Count; i++)
+        {
+            Transform marker = markers[i];
+            if (marker == null) continue;
+
+            Vector3 position = marker.position;
+            position.z += CoinRowOffsetZ;
+            position.y = CoinHeight;
+
+            if ((position - spawnPoint).sqrMagnitude < CoinSkipSpawnSqr) continue;
+
+            GameObject coin = new GameObject(marker.name);
+            coin.transform.SetParent(marker.parent, false);
+            coin.transform.position = position;
+
+            CreateFallbackVisual(coin.transform);
+
+            coin.AddComponent<NeonCoinPickup>();
+            marker.gameObject.SetActive(false);
+        }
+
+        for (int i = 0; i < markers.Count; i++)
+        {
+            if (markers[i] != null) Destroy(markers[i].gameObject);
+        }
+    }
+
+    private static bool IsCoinMarker(Transform transform)
+    {
+        if (transform.name != CoinMarkerName && !transform.name.StartsWith(CoinMarkerName + " (")) return false;
+        return transform.GetComponent<CoinWork>() == null;
+    }
+
+    private static void CreateFallbackVisual(Transform parent)
+    {
+        GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        visual.name = "Visual";
+        visual.transform.SetParent(parent, false);
+        visual.transform.localPosition = Vector3.zero;
+        visual.transform.localScale = Vector3.one * 0.8f;
+
+        Collider collider = visual.GetComponent<Collider>();
+        if (collider != null) Destroy(collider);
+
+        Renderer renderer = visual.GetComponent<Renderer>();
+        if (renderer != null) renderer.material.color = new Color(1f, 0.82f, 0.25f);
+    }
+
+    // Map desainer hanya sepanjang ~580 m, jadi salinan environment disambung
+    // di depan (-X) dan didaur ulang saat sudah lewat kamera.
+    private void BeginTiling(Transform environment)
+    {
+        if (followPlayer == null)
+        {
+            Debug.LogWarning("[NeonGameSceneAdapter] Player tidak ditemukan, map tidak diulang.", this);
+            return;
+        }
+
+        float minX;
+        float maxX;
+        if (!MeasureRoadX(environment, out minX, out maxX)) return;
+
+        float length = maxX - minX;
+        if (length < 20f) return;
+
+        segmentLength = length;
+        segments.Add(new Segment { root = environment, minX = minX, maxX = maxX });
+
+        for (int i = 1; i <= SegmentCopies; i++)
+        {
+            GameObject copy = Instantiate(environment.gameObject);
+            copy.name = environment.name + " Segment " + i;
+            copy.transform.position = environment.position + Vector3.left * (length * i);
+
+            segments.Add(new Segment
+            {
+                root = copy.transform,
+                minX = minX - length * i,
+                maxX = maxX - length * i
+            });
+        }
+
+        rearIndex = 0;
+        frontIndex = segments.Count - 1;
+        tiling = true;
+    }
+
+    private static bool MeasureRoadX(Transform root, out float minX, out float maxX)
+    {
+        minX = float.PositiveInfinity;
+        maxX = float.NegativeInfinity;
+
+        Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer == null || !renderer.enabled) continue;
+            if (!renderer.gameObject.activeInHierarchy) continue;
+
+            Bounds bounds = renderer.bounds;
+            if (bounds.size.x < 0.01f) continue;
+            if (!IsRoadPiece(renderer.transform, root)) continue;
+
+            minX = Mathf.Min(minX, bounds.min.x);
+            maxX = Mathf.Max(maxX, bounds.max.x);
+        }
+
+        if (float.IsInfinity(minX) || float.IsInfinity(maxX) || maxX <= minX)
+        {
+            minX = float.PositiveInfinity;
+            maxX = float.NegativeInfinity;
+
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                Renderer renderer = renderers[i];
+                if (renderer == null || !renderer.enabled) continue;
+                if (!renderer.gameObject.activeInHierarchy) continue;
+                if (renderer.bounds.size.x < 0.01f) continue;
+
+                minX = Mathf.Min(minX, renderer.bounds.min.x);
+                maxX = Mathf.Max(maxX, renderer.bounds.max.x);
+            }
+        }
+
+        return !float.IsInfinity(minX) && !float.IsInfinity(maxX) && maxX > minX;
+    }
+
+    private static bool IsRoadPiece(Transform transform, Transform root)
+    {
+        Transform current = transform;
+        for (int depth = 0; current != null && depth < 12; depth++)
+        {
+            string name = current.name;
+            if (name.IndexOf("4Lane", System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            if (name.StartsWith("Lane_Marking")) return true;
+            if (current == root) break;
+            current = current.parent;
+        }
+
+        return false;
+    }
+}

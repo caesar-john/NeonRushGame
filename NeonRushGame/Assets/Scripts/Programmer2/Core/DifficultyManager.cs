@@ -18,7 +18,7 @@ public class DifficultyManager : MonoBehaviour
 
     public event Action<float> SpeedChanged;
 
-    private float startZ;
+    private Vector3 startPosition;
     private bool subscribed;
 
     private void Awake()
@@ -54,7 +54,8 @@ public class DifficultyManager : MonoBehaviour
     private void OnRunStarted()
     {
         if (player == null && GameManager.Instance != null) player = GameManager.Instance.Player;
-        startZ = player != null ? player.position.z : 0f;
+        startPosition = player != null ? player.position : Vector3.zero;
+        RunProgress.Reset(startPosition);
         RunDistance = 0f;
         CurrentSpeed = startSpeed;
         SpeedChanged?.Invoke(CurrentSpeed);
@@ -65,7 +66,7 @@ public class DifficultyManager : MonoBehaviour
         if (GameManager.Instance == null || !GameManager.Instance.IsPlaying) return;
         if (player == null) return;
 
-        RunDistance = Mathf.Max(0f, player.position.z - startZ);
+        RunDistance = RunProgress.Measure(player);
         float target = Mathf.Min(maxSpeed, startSpeed + speedIncreasePerMeter * RunDistance);
 
         if (!Mathf.Approximately(target, CurrentSpeed))
