@@ -8,4 +8,9 @@ public class MainMenuController : MonoBehaviour
     {
         SceneManager.LoadScene("Game");
     }
+    public void ExitGame()
+    {
+        Debug.Log("Keluar dari Neon Rush");
+        Application.Quit();
+    }
 }

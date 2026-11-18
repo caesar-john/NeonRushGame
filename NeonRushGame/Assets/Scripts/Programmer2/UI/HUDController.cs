@@ -1,3 +1,4 @@
+
 using TMPro;
 using UnityEngine;
 
@@ -26,7 +27,11 @@ public class HUDController : MonoBehaviour
     private void Start()
     {
         gameManager = GameManager.Instance;
-        scoreManager = gameManager != null ? gameManager.ScoreSystem : FindObjectOfType<ScoreManager>();
+
+        scoreManager = gameManager != null
+            ? gameManager.ScoreSystem
+            : FindObjectOfType<ScoreManager>();
+
         Subscribe();
         RefreshAll();
     }
@@ -79,39 +84,81 @@ public class HUDController : MonoBehaviour
         if (scoreManager != null)
         {
             OnScoreChanged(scoreManager.Score);
-            OnDistanceChanged(Mathf.FloorToInt(scoreManager.Distance));
+            OnDistanceChanged(
+                Mathf.FloorToInt(scoreManager.Distance)
+            );
         }
 
-        if (gameManager != null) OnCoinsChanged(gameManager.Coins);
+        if (gameManager != null)
+        {
+            OnCoinsChanged(gameManager.Coins);
+        }
     }
 
     private void OnScoreChanged(int score)
     {
-        if (scoreText != null) scoreText.text = scorePrefix + score;
+        if (scoreText != null)
+            scoreText.text = scorePrefix + score;
     }
 
     private void OnDistanceChanged(int meters)
     {
-        if (distanceText != null) distanceText.text = meters + distanceSuffix;
+        if (distanceText != null)
+            distanceText.text = meters + distanceSuffix;
     }
 
     private void OnCoinsChanged(int coins)
     {
-        if (coinText != null) coinText.text = coinPrefix + coins;
+        if (coinText != null)
+            coinText.text = coinPrefix + coins;
     }
 
     private void OnRunEnded()
     {
-        if (scoreManager == null) return;
+        Debug.Log(
+            "[HUD] GAME OVER | Score: " +
+            (scoreManager != null ? scoreManager.Score : -1) +
+            " | Distance: " +
+            (scoreManager != null ? scoreManager.Distance : -1) +
+            " | Coins: " +
+            (gameManager != null ? gameManager.Coins : -1)
+        );
 
-        if (finalScoreText != null) finalScoreText.text = scorePrefix + scoreManager.Score;
-        if (finalDistanceText != null) finalDistanceText.text = Mathf.FloorToInt(scoreManager.Distance) + distanceSuffix;
-        if (finalCoinText != null) finalCoinText.text = coinPrefix + (gameManager != null ? gameManager.Coins : 0);
+        if (scoreManager == null)
+        {
+            Debug.LogError("[HUD] ScoreManager tidak ditemukan!");
+            return;
+        }
+
+        if (finalScoreText != null)
+            finalScoreText.text = scorePrefix + scoreManager.Score;
+        else
+            Debug.LogWarning("[HUD] Final Score Text belum terhubung!");
+
+        if (finalDistanceText != null)
+            finalDistanceText.text =
+                Mathf.FloorToInt(scoreManager.Distance) + distanceSuffix;
+        else
+            Debug.LogWarning("[HUD] Final Distance Text belum terhubung!");
+
+        if (finalCoinText != null)
+            finalCoinText.text =
+                coinPrefix + (gameManager != null ? gameManager.Coins : 0);
+        else
+            Debug.LogWarning("[HUD] Final Coin Text belum terhubung!");
 
         if (bestScoreText != null)
         {
-            int best = Mathf.Max(scoreManager.BestScore, scoreManager.Score);
+            int best = Mathf.Max(
+                scoreManager.BestScore,
+                scoreManager.Score
+            );
+
             bestScoreText.text = "TERBAIK  " + best;
+        }
+        else
+        {
+            Debug.LogWarning("[HUD] Best Score Text belum terhubung!");
         }
     }
 }
