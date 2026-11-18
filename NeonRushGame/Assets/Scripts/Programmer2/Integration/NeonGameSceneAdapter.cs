@@ -26,6 +26,14 @@ public class NeonGameSceneAdapter : MonoBehaviour
     private const float FloorThickness = 0.4f;
     private const float FloorCenterY = 0.3f;
 
+    private const string HazardName = "NeonHazard";
+    private const float HazardStartOffset = 120f;
+    private const float HazardSpacing = 70f;
+    private const float HazardHeight = 2.6f;
+    private const float HazardLength = 4f;
+    private const float HazardDepth = 8f;
+    private const float HazardLaneDistance = 12f;
+
     private const int SegmentCopies = 2;
     private const float SegmentBehindBuffer = 40f;
 
@@ -100,11 +108,21 @@ public class NeonGameSceneAdapter : MonoBehaviour
         if (followPlayer != null)
         {
             NeonRunnerCamera.Install(followPlayer);
+
+            // Pasang efek suara kejadian pemain tanpa mengubah skrip milik P1.
+            if (followPlayer.GetComponent<NeonPlayerSfx>() == null)
+                followPlayer.gameObject.AddComponent<NeonPlayerSfx>();
+
+            // SFX geser menunggu status slide dari skrip P1 (tanpa membuat mekanik slide).
+            if (followPlayer.GetComponent<NeonSlideSfx>() == null)
+                followPlayer.gameObject.AddComponent<NeonSlideSfx>();
+
             Debug.Log("[NeonGameSceneAdapter] Player awal " + spawnPoint + ", rotasi " + followPlayer.eulerAngles +
                       ". Kamera chase dipasang.", this);
         }
 
         BuildCoins(environment.transform, spawnPoint);
+        BuildHazards(environment.transform, spawnPoint);
         BeginTiling(environment.transform);
     }
 
@@ -421,6 +439,87 @@ public class NeonGameSceneAdapter : MonoBehaviour
 
         Renderer renderer = visual.GetComponent<Renderer>();
         if (renderer != null) renderer.material.color = new Color(1f, 0.82f, 0.25f);
+    }
+
+    // Rintangan neon dipasang runtime di jalur -X agar Game Over/Restart dan SFX
+    // crash aktif tanpa mengubah scene milik desainer. Hazard dibuat sebagai
+    // anak 'Environment' supaya ikut tersalin saat map didaur ulang.
+    private void BuildHazards(Transform environment, Vector3 spawnPoint)
+    {
+        float minX;
+        float maxX;
+        if (!MeasureRoadX(environment, out minX, out maxX))
+        {
+            minX = spawnPoint.x - 600f;
+            maxX = spawnPoint.x;
+        }
+
+        Material material = CreateHazardMaterial();
+        int[][] patterns =
+        {
+            new[] { 0 },
+            new[] { 1 },
+            new[] { 2 },
+            new[] { 0, 2 },
+            new[] { 1 }
+        };
+
+        float centerY = FloorCenterY + FloorThickness * 0.5f + HazardHeight * 0.5f;
+        int created = 0;
+        int step = 0;
+
+        for (float x = maxX - HazardStartOffset; x > minX; x -= HazardSpacing)
+        {
+            int[] lanes = patterns[step % patterns.Length];
+
+            for (int i = 0; i < lanes.Length; i++)
+            {
+                int lane = lanes[i];
+
+                GameObject hazard = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                hazard.name = HazardName + " " + step + "-" + lane;
+                hazard.transform.position = new Vector3(x, centerY, (lane - 1) * HazardLaneDistance);
+                hazard.transform.localScale = new Vector3(HazardLength, HazardHeight, HazardDepth);
+                hazard.transform.SetParent(environment, true);
+
+                BoxCollider box = hazard.GetComponent<BoxCollider>();
+                if (box != null) box.isTrigger = true;
+
+                Renderer renderer = hazard.GetComponent<Renderer>();
+                if (renderer != null && material != null) renderer.sharedMaterial = material;
+
+                hazard.AddComponent<Hazard>();
+                created++;
+            }
+
+            step++;
+        }
+
+        if (created > 0)
+            Debug.Log("[NeonGameSceneAdapter] " + created + " hazard neon dipasang di lajur -X.", this);
+    }
+
+    private static Material CreateHazardMaterial()
+    {
+        Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+        if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
+        if (shader == null) shader = Shader.Find("Standard");
+        if (shader == null) return null;
+
+        Color color = new Color(1f, 0.15f, 0.55f);
+        Material material = new Material(shader);
+        material.color = color;
+
+        if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
+        if (material.HasProperty("_Color")) material.SetColor("_Color", color);
+
+        if (material.HasProperty("_EmissionColor"))
+        {
+            material.EnableKeyword("_EMISSION");
+            material.SetColor("_EmissionColor", color * 2f);
+        }
+
+        return material;
     }
 
     // Map desainer hanya sepanjang ~580 m, jadi salinan environment disambung

@@ -55,6 +55,8 @@ public class NeonCoinPickup : MonoBehaviour
         if (GameManager.Instance != null)
             GameManager.Instance.CollectCoin(coinValue);
 
+        AudioManager.PlaySfx(SfxId.Coin);
+
         gameObject.SetActive(false);
     }
 

@@ -48,6 +48,11 @@ public class NeonRunnerCamera : MonoBehaviour
             NeonCityCameraRig legacy = cameras[i].GetComponent<NeonCityCameraRig>();
             if (legacy != null) legacy.enabled = false;
 
+            // Mematikan komponen Camera tidak mematikan AudioListener, jadi
+            // listener kamera lain dibisukan agar hanya ada satu di scene.
+            AudioListener otherListener = cameras[i].GetComponent<AudioListener>();
+            if (otherListener != null) otherListener.enabled = false;
+
             // Kamera dari scene lain dimatikan sama sekali supaya tidak
             // menimpa bingkai kamera chase.
             if (player == null || cameras[i].gameObject.scene != player.gameObject.scene)

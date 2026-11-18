@@ -355,3 +355,40 @@ tetap utuh dan file milik Game Designer tidak diubah sama sekali.
   Game Designer, jadi Unity akan menandainya sebagai prefab hilang. Ini kondisi
   dari branch asal, bukan akibat integrasi.
 
+---
+
+## 11. Pembaruan Terbaru (map desainer scene `Game`)
+
+Gameplay utama sekarang memakai scene **`Game`** milik tim (bukan scene builder
+lama). Semua penyesuaian tetap lewat script Programmer 2 saat runtime:
+
+| Fitur | File | Catatan |
+|-------|------|---------|
+| Adapter map + tiling sumbu X + kamera chase | `Integration/NeonGameSceneAdapter.cs`, `NeonRunnerCamera.cs` | Tidak mengubah scene/prefab tim |
+| Koin map desainer | `Integration/NeonCoinPickup.cs` | 957 koin; memutar `SfxId.Coin` |
+| Hazard neon + Game Over | `NeonGameSceneAdapter.BuildHazards()` + `Gameplay/Hazard.cs` | 8 hazard/segmen di lajur −12/0/+12, dipasang sebagai anak `Environment` agar ikut tiling |
+| SFX lompat | `Integration/NeonPlayerSfx.cs` | Deteksi lonjakan `Rigidbody.linearVelocity.y`, tanpa mengubah `PlayerJump.cs` |
+| SFX geser | `Integration/NeonSlideSfx.cs` | Menunggu status slide dari P1: properti/field bool `IsSliding`/`isSliding`/`Sliding`/`slide`, atau parameter Animator `Slide` |
+| Tombol MENU | `Integration/NeonGameMenuButtons.cs` | Scene lokal sudah punya `PauseMenuButton`/`GameOverMenuButton`; script menyuntik bila scene lain belum punya |
+| Best score di MainMenu | `Integration/NeonMainMenuBestScore.cs` | Label TMP "TERBAIK <n>" dari `PlayerPrefs` (`NeonRush_BestScore`) |
+
+Hasil smoke test otomatis (PlayMode batchmode):
+
+```
+[SMOKE][OK] Hazard neon terpasang: 24
+[SMOKE][OK] Hazard memicu Game Over: GameOver
+[SMOKE][OK] Time.timeScale = 0 setelah menabrak hazard
+[SMOKE][OK] Tombol MENU tersedia di PausePanel
+[SMOKE][OK] Tombol MENU tersedia di GameOverPanel
+[SMOKE][OK] Bridge SFX geser terpasang
+...
+SMOKE TEST LULUS (43 OK, 0 FAIL)
+```
+
+Tes scene MainMenu: `BestScoreText` tampil `TERBAIK  4321`, tanpa exception.
+
+Catatan pembagian tugas: **mekanik slide milik P1**. Programmer 2 hanya
+menyediakan bridge audio; suara geser akan berbunyi otomatis begitu skrip P1
+mengekspos salah satu status slide di atas.
+
+
