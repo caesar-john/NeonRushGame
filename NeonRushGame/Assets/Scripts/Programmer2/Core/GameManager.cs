@@ -58,10 +58,11 @@ public class GameManager : MonoBehaviour
         {
             GameObject found = GameObject.FindGameObjectWithTag("Player");
             if (found != null) player = found.transform;
+            else Debug.LogWarning("[GameManager] Player belum di-assign dan tag 'Player' tidak ditemukan. Assign manual lewat Inspector.", this);
         }
         if (difficulty == null) difficulty = GetComponentInChildren<DifficultyManager>();
-        if (difficulty == null) difficulty = FindObjectOfType<DifficultyManager>();
-        if (scoreManager == null) scoreManager = FindObjectOfType<ScoreManager>();
+        if (difficulty == null) difficulty = FindAnyObjectByType<DifficultyManager>();
+        if (scoreManager == null) scoreManager = FindAnyObjectByType<ScoreManager>();
     }
 
     private void Start()

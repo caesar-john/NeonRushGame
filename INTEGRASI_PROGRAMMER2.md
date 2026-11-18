@@ -317,3 +317,78 @@ Cukup salin dari folder hasil integrasi ke repo kalian:
   gameplay.
 - Audio dibuat prosedural (bebas hak cipta) dan bisa diganti lewat komponen
   `AudioManager` di scene Game/MainMenu.
+
+---
+
+## 10. Map NeonCity dari Game Designer
+
+Map dipasang sebagai **latar** (bukan lintasan) agar gameplay Programmer 2
+tetap utuh dan file milik Game Designer tidak diubah sama sekali.
+
+- Yang disalin hanya aset yang benar-benar dirujuk `Assets/NeonCity.unity`
+  (157 file, ±171 MB) beserta `.meta` aslinya, jadi GUID tetap sama.
+- `Assets/NeonCity.unity` + `ProjectSettings/EditorBuildSettings.asset`
+  (ditambahkan sebagai scene ke-4, setelah Sandbox).
+- `Assets/Scripts/Programmer2/Integration/NeonCityBackdrop.cs` memuat scene
+  `NeonCity` secara aditif hanya saat scene `Game` aktif, lalu:
+  - mematikan root `Main Camera`, `EventSystem`, `Canvas_HUD`, dan
+    `Directional Light` milik map. Light map dimatikan karena scene `Game`
+    sudah punya directional light sendiri (arah dan warnanya sama);
+  - mematikan Camera, AudioListener, EventSystem, dan Canvas yang tersarang,
+    plus semua Collider map, supaya tidak bentrok dengan scene Game;
+  - mempertahankan `Global Volume` map (Bloom, Tonemapping, Vignette) dan
+    menyalakan `renderPostProcessing` pada kamera game lewat kode;
+  - memutar map +90° (kamera designer menghadap -X) agar arah pandang kota
+    sama dengan arah lari pemain (+Z), jadi billboard menghadap ke pemain;
+  - memusatkan map memakai posisi segmen `Street_4Lane` (bukan marka lajur)
+    dan menurunkan permukaan jalan map ke y = -0,08 agar tidak menutupi jalan
+    P2 yang permukaannya di y = 0;
+  - menyembunyikan semua koin dekorasi map (`Coin_Gold_Lightning`) dan
+    mematikan renderer yang menembus koridor jalur (mobil/barrier di tengah
+    jalan), tanpa mengubah aset map;
+  - mulai 20 m di belakang Player. Penggandaan map dimatikan dulu
+    (`CopyCount = 1`).
+- Kalau ingin menyetel posisi, ubah konstanta di bagian atas
+  `NeonCityBackdrop.cs` (`BackdropYaw`, `StreetSurfaceY`, `StartOffsetZ`,
+  `CopyCount`, `CopyGap`, `ClearanceHalfWidth`).
+- Satu prefab di scene map (`Barrier-03 (2)`) tidak ikut ter-commit di branch
+  Game Designer, jadi Unity akan menandainya sebagai prefab hilang. Ini kondisi
+  dari branch asal, bukan akibat integrasi.
+
+---
+
+## 11. Pembaruan Terbaru (map desainer scene `Game`)
+
+Gameplay utama sekarang memakai scene **`Game`** milik tim (bukan scene builder
+lama). Semua penyesuaian tetap lewat script Programmer 2 saat runtime:
+
+| Fitur | File | Catatan |
+|-------|------|---------|
+| Adapter map + tiling sumbu X + kamera chase | `Integration/NeonGameSceneAdapter.cs`, `NeonRunnerCamera.cs` | Tidak mengubah scene/prefab tim |
+| Koin map desainer | `Integration/NeonCoinPickup.cs` | 957 koin; memutar `SfxId.Coin` |
+| Hazard neon + Game Over | `NeonGameSceneAdapter.BuildHazards()` + `Gameplay/Hazard.cs` | 8 hazard/segmen di lajur −12/0/+12, dipasang sebagai anak `Environment` agar ikut tiling |
+| SFX lompat | `Integration/NeonPlayerSfx.cs` | Deteksi lonjakan `Rigidbody.linearVelocity.y`, tanpa mengubah `PlayerJump.cs` |
+| SFX geser | `Integration/NeonSlideSfx.cs` | Menunggu status slide dari P1: properti/field bool `IsSliding`/`isSliding`/`Sliding`/`slide`, atau parameter Animator `Slide` |
+| Tombol MENU | `Integration/NeonGameMenuButtons.cs` | Scene lokal sudah punya `PauseMenuButton`/`GameOverMenuButton`; script menyuntik bila scene lain belum punya |
+| Best score di MainMenu | `Integration/NeonMainMenuBestScore.cs` | Label TMP "TERBAIK <n>" dari `PlayerPrefs` (`NeonRush_BestScore`) |
+
+Hasil smoke test otomatis (PlayMode batchmode):
+
+```
+[SMOKE][OK] Hazard neon terpasang: 24
+[SMOKE][OK] Hazard memicu Game Over: GameOver
+[SMOKE][OK] Time.timeScale = 0 setelah menabrak hazard
+[SMOKE][OK] Tombol MENU tersedia di PausePanel
+[SMOKE][OK] Tombol MENU tersedia di GameOverPanel
+[SMOKE][OK] Bridge SFX geser terpasang
+...
+SMOKE TEST LULUS (43 OK, 0 FAIL)
+```
+
+Tes scene MainMenu: `BestScoreText` tampil `TERBAIK  4321`, tanpa exception.
+
+Catatan pembagian tugas: **mekanik slide milik P1**. Programmer 2 hanya
+menyediakan bridge audio; suara geser akan berbunyi otomatis begitu skrip P1
+mengekspos salah satu status slide di atas.
+
+

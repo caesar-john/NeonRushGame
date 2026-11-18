@@ -3,7 +3,7 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class Coin : MonoBehaviour
 {
-    [SerializeField] private int value = 10;
+    [SerializeField] private int value = 1;
     [SerializeField] private float rotateSpeed = 120f;
     [SerializeField] private float bobHeight = 0.12f;
     [SerializeField] private float bobSpeed = 2.5f;
