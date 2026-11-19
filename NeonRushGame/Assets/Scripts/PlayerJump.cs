@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 public class PlayerJump : MonoBehaviour
@@ -14,6 +13,10 @@ public class PlayerJump : MonoBehaviour
         get { return jumpForce; }
         set { jumpForce = value; }
     }
+
+    // Nama state di Animator Controller (Base Layer).
+    private const string RunningState = "Running";
+    private const string JumpState = "Jump";
 
     private Rigidbody rb;
     private bool isGrounded = false;
@@ -40,8 +43,6 @@ public class PlayerJump : MonoBehaviour
         {
             animator.SetBool("IsGrounded", isGrounded);
         }
-
-
     }
 
     void Update()
@@ -49,16 +50,33 @@ public class PlayerJump : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             isGrounded = false;
-
-            if (animator != null) animator.SetTrigger("Jump");
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            PlayState(JumpState);
         }
 
-        // Sinkronisasi kondisi fisik dengan Animator
+        // Animator Controller belum punya transisi antar-state, jadi perpindahan
+        // state dilakukan langsung dari script. Setelah mendarat, kembali ke
+        // Running supaya animasi tidak berhenti di frame terakhir lompat.
+        if (isGrounded && IsCurrentState(JumpState))
+        {
+            PlayState(RunningState);
+        }
+
         if (animator != null)
         {
             animator.SetBool("IsGrounded", isGrounded);
         }
+    }
+
+    private void PlayState(string stateName)
+    {
+        if (animator == null) return;
+        animator.Play(stateName, 0, 0f);
+    }
+
+    private bool IsCurrentState(string stateName)
+    {
+        return animator != null && animator.GetCurrentAnimatorStateInfo(0).IsName(stateName);
     }
 
     private void OnCollisionStay(Collision collision)
