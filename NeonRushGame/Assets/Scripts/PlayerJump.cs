@@ -14,10 +14,6 @@ public class PlayerJump : MonoBehaviour
         set { jumpForce = value; }
     }
 
-    // Nama state di Animator Controller (Base Layer).
-    private const string RunningState = "Running";
-    private const string JumpState = "Jump";
-
     private Rigidbody rb;
     private bool isGrounded = false;
 
@@ -50,43 +46,16 @@ public class PlayerJump : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             isGrounded = false;
+
+            if (animator != null) animator.SetTrigger("Jump");
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-            PlayState(JumpState);
         }
 
-        // Animator Controller belum punya transisi antar-state, jadi perpindahan
-        // state dilakukan langsung dari script. Setelah mendarat, kembali ke
-        // Running supaya animasi tidak berhenti di frame terakhir lompat.
-        if (isGrounded && IsCurrentState(JumpState))
-        {
-            PlayState(RunningState);
-        }
-
+        // Sinkronisasi kondisi fisik dengan Animator
         if (animator != null)
         {
             animator.SetBool("IsGrounded", isGrounded);
         }
-    }
-
-    private void FixedUpdate()
-    {
-        // Saat menapak, buang sisa kecepatan jatuh supaya karakter tidak
-        // memantul kecil-kecil di permukaan jalan.
-        if (isGrounded && rb != null && rb.linearVelocity.y < 0f)
-        {
-            rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-        }
-    }
-
-    private void PlayState(string stateName)
-    {
-        if (animator == null) return;
-        animator.Play(stateName, 0, 0f);
-    }
-
-    private bool IsCurrentState(string stateName)
-    {
-        return animator != null && animator.GetCurrentAnimatorStateInfo(0).IsName(stateName);
     }
 
     private void OnCollisionStay(Collision collision)
