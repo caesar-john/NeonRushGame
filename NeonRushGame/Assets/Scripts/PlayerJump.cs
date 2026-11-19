@@ -36,6 +36,11 @@ public class PlayerJump : MonoBehaviour
             Debug.LogError("Animator tidak ditemukan pada player");
         }
 
+        if (animator != null)
+        {
+            animator.SetBool("IsGrounded", isGrounded);
+        }
+
 
     }
 
@@ -44,8 +49,15 @@ public class PlayerJump : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             isGrounded = false;
+
             animator.SetTrigger("Jump");
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        }
+
+        // Sinkronisasi kondisi fisik dengan Animator
+        if (animator != null)
+        {
+            animator.SetBool("IsGrounded", isGrounded);
         }
     }
 
@@ -57,6 +69,7 @@ public class PlayerJump : MonoBehaviour
             if (contact.normal.y > 0.5f && rb.linearVelocity.y <= 0.1f)
             {
                 isGrounded = true;
+                Debug.Log("PLAYER MENDARAT - IsGrounded TRUE");
                 return;
             }
         }
