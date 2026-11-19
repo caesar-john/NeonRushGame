@@ -15845,6 +15845,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Hazard
   endGameOnTouch: 1
+  jumpClearance: 0.25
 --- !u!1001 &748137974
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -16168,6 +16169,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Hazard
   endGameOnTouch: 1
+  jumpClearance: 0.25
 --- !u!1 &760933196
 GameObject:
   m_ObjectHideFlags: 0
@@ -24450,6 +24452,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Hazard
   endGameOnTouch: 1
+  jumpClearance: 0.25
 --- !u!1001 &1179721413
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -25461,15 +25464,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7488132857501566696, guid: 9468a4d3a94769e4991365ce3a2cdf85, type: 3}
       propertyPath: m_Size.x
-      value: 5.97
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7488132857501566696, guid: 9468a4d3a94769e4991365ce3a2cdf85, type: 3}
       propertyPath: m_Size.y
-      value: 6.92
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 7488132857501566696, guid: 9468a4d3a94769e4991365ce3a2cdf85, type: 3}
       propertyPath: m_Size.z
-      value: 0.7
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7488132857501566696, guid: 9468a4d3a94769e4991365ce3a2cdf85, type: 3}
       propertyPath: m_Enabled
@@ -25477,15 +25480,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7488132857501566696, guid: 9468a4d3a94769e4991365ce3a2cdf85, type: 3}
       propertyPath: m_Center.x
-      value: -0.1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7488132857501566696, guid: 9468a4d3a94769e4991365ce3a2cdf85, type: 3}
       propertyPath: m_Center.y
-      value: 2.07
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7488132857501566696, guid: 9468a4d3a94769e4991365ce3a2cdf85, type: 3}
       propertyPath: m_Center.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7488132857501566696, guid: 9468a4d3a94769e4991365ce3a2cdf85, type: 3}
       propertyPath: m_IsTrigger
@@ -29099,6 +29102,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Hazard
   endGameOnTouch: 1
+  jumpClearance: 0.25
 --- !u!1 &1471791215
 GameObject:
   m_ObjectHideFlags: 0
@@ -30754,6 +30758,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Hazard
   endGameOnTouch: 1
+  jumpClearance: 0.25
 --- !u!1 &1568778730
 GameObject:
   m_ObjectHideFlags: 0
@@ -34224,6 +34229,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Hazard
   endGameOnTouch: 1
+  jumpClearance: 0.25
 --- !u!65 &1757212896
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -36434,6 +36440,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Hazard
   endGameOnTouch: 1
+  jumpClearance: 0.25
 --- !u!65 &1844579898
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -37707,6 +37714,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Hazard
   endGameOnTouch: 1
+  jumpClearance: 0.25
 --- !u!1 &1896720217
 GameObject:
   m_ObjectHideFlags: 0

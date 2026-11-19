@@ -20,7 +20,7 @@ public class NeonGameSceneAdapter : MonoBehaviour
     private const float CoinHeight = 1.6f;
     private const float CoinSkipSpawnSqr = 9f;
     private const float CoinCollectRadius = 5f;
-    private const float PlayerJumpForce = 12f;
+    private const float PlayerJumpForce = 10f;
 
     private const float FloorLength = 20000f;
     private const float FloorWidth = 90f;
