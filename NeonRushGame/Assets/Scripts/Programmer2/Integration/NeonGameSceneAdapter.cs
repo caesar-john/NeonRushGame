@@ -17,9 +17,10 @@ public class NeonGameSceneAdapter : MonoBehaviour
     private const string FloorName = "FloorCollider";
     private const string TilesName = "Tiles";
 
-    private const float CoinRowOffsetZ = -10.5f;
     private const float CoinHeight = 1.6f;
     private const float CoinSkipSpawnSqr = 9f;
+    private const float CoinCollectRadius = 5f;
+    private const float PlayerJumpForce = 12f;
 
     private const float FloorLength = 20000f;
     private const float FloorWidth = 90f;
@@ -108,6 +109,7 @@ public class NeonGameSceneAdapter : MonoBehaviour
         if (followPlayer != null)
         {
             NeonRunnerCamera.Install(followPlayer);
+            TunePlayer(followPlayer);
 
             // Pasang efek suara kejadian pemain tanpa mengubah skrip milik P1.
             if (followPlayer.GetComponent<NeonPlayerSfx>() == null)
@@ -121,9 +123,58 @@ public class NeonGameSceneAdapter : MonoBehaviour
                       ". Kamera chase dipasang.", this);
         }
 
+        DisableDecorativeHazards(scene);
         BuildCoins(environment.transform, spawnPoint);
         BuildHazards(environment.transform, spawnPoint);
         BeginTiling(environment.transform);
+    }
+
+    // Collider pemain di scene desainer sangat tinggi (mengikuti model karakter
+    // yang di-scale 3x). Akibatnya lompatan standar (jumpForce 8) tidak pernah
+    // cukup untuk melewati rintangan. Nilai lompat dinaikkan di sini supaya
+    // karakter benar-benar bisa melompati hazard tanpa mengubah scene.
+    private static void TunePlayer(Transform player)
+    {
+        if (player == null) return;
+
+        PlayerJump jump = player.GetComponent<PlayerJump>();
+        if (jump != null)
+        {
+            jump.JumpForce = PlayerJumpForce;
+            Debug.Log("[NeonGameSceneAdapter] Kekuatan lompat diatur ke " + PlayerJumpForce + ".", player);
+        }
+
+        Rigidbody body = player.GetComponent<Rigidbody>();
+        if (body != null)
+        {
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            body.constraints |= RigidbodyConstraints.FreezeRotation;
+        }
+    }
+
+    // Hazard yang ditempel ke properti dekorasi (barrier, mobil, laser hiasan)
+    // membuat pemain langsung Game Over hanya karena menyentuh pinggir jalan.
+    // Hazard buatan adapter ini selalu bernama "NeonHazard ..." sehingga
+    // komponen lain bisa dibedakan dan dimatikan.
+    private static void DisableDecorativeHazards(Scene scene)
+    {
+        Hazard[] hazards = FindObjectsByType<Hazard>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        int disabled = 0;
+
+        for (int i = 0; i < hazards.Length; i++)
+        {
+            Hazard hazard = hazards[i];
+            if (hazard == null) continue;
+            if (hazard.gameObject.scene != scene) continue;
+            if (hazard.gameObject.name.StartsWith(HazardName, System.StringComparison.Ordinal)) continue;
+
+            hazard.enabled = false;
+            disabled++;
+        }
+
+        if (disabled > 0)
+            Debug.Log("[NeonGameSceneAdapter] " + disabled + " Hazard pada properti dekorasi dimatikan (hanya hazard neon yang aktif).", null);
     }
 
     // Scene GameNeonCity adalah alur lama (lari ke +Z, map diputar 90 derajat).
@@ -342,14 +393,13 @@ public class NeonGameSceneAdapter : MonoBehaviour
             converted++;
         }
 
-        if (converted > 0)
-        {
-            Debug.Log("[NeonGameSceneAdapter] " + converted + " koin visual dijadikan koin interaktif.", this);
-            return;
-        }
+        int fromMarkers = BuildCoinsFromMarkers(environment, spawnPoint);
 
-        Debug.LogWarning("[NeonGameSceneAdapter] Visual koin tidak ditemukan, memakai penanda 'coin' sebagai ganti.", this);
-        BuildCoinsFromMarkers(environment, spawnPoint);
+        Debug.Log("[NeonGameSceneAdapter] Koin interaktif: " + converted + " visual + " +
+                  fromMarkers + " dari penanda 'coin'.", this);
+
+        if (converted + fromMarkers == 0)
+            Debug.LogWarning("[NeonGameSceneAdapter] Tidak ada koin yang bisa dibuat di scene " + SceneName + ".", this);
     }
 
     private static bool IsCoinVisualRoot(Transform candidate, Transform environment)
@@ -379,12 +429,19 @@ public class NeonGameSceneAdapter : MonoBehaviour
             colliders[i].enabled = false;
         }
 
-        if (coin.GetComponent<NeonCoinPickup>() == null) coin.gameObject.AddComponent<NeonCoinPickup>();
+        NeonCoinPickup pickup = coin.GetComponent<NeonCoinPickup>();
+        if (pickup == null) pickup = coin.gameObject.AddComponent<NeonCoinPickup>();
+
+        pickup.Configure(CoinCollectRadius);
 
         return true;
     }
 
-    private void BuildCoinsFromMarkers(Transform environment, Vector3 spawnPoint)
+    // Penanda "coin" milik desainer dipakai sebagai sumber posisi. Koin visual
+    // yang sudah ada di bawah penanda tetap dipakai; kalau penanda tidak punya
+    // koin visual, dibuatkan bola pengganti tepat di posisi penanda. Objek
+    // penanda tidak dihapus agar tidak ikut menghancurkan koin di bawahnya.
+    private int BuildCoinsFromMarkers(Transform environment, Vector3 spawnPoint)
     {
         List<Transform> markers = new List<Transform>();
         Transform[] children = environment.GetComponentsInChildren<Transform>(true);
@@ -393,31 +450,33 @@ public class NeonGameSceneAdapter : MonoBehaviour
             if (IsCoinMarker(children[i])) markers.Add(children[i]);
         }
 
+        int created = 0;
+
         for (int i = 0; i < markers.Count; i++)
         {
             Transform marker = markers[i];
             if (marker == null) continue;
 
+            // Sudah punya koin interaktif di bawahnya? Tidak perlu dibuat lagi.
+            if (marker.GetComponentInChildren<NeonCoinPickup>(true) != null) continue;
+
             Vector3 position = marker.position;
-            position.z += CoinRowOffsetZ;
-            position.y = CoinHeight;
+            if (position.y < CoinHeight) position.y = CoinHeight;
 
             if ((position - spawnPoint).sqrMagnitude < CoinSkipSpawnSqr) continue;
 
-            GameObject coin = new GameObject(marker.name);
-            coin.transform.SetParent(marker.parent, false);
+            GameObject coin = new GameObject(marker.name + " (koin)");
+            coin.transform.SetParent(marker, false);
             coin.transform.position = position;
 
             CreateFallbackVisual(coin.transform);
 
-            coin.AddComponent<NeonCoinPickup>();
-            marker.gameObject.SetActive(false);
+            NeonCoinPickup pickup = coin.AddComponent<NeonCoinPickup>();
+            pickup.Configure(CoinCollectRadius);
+            created++;
         }
 
-        for (int i = 0; i < markers.Count; i++)
-        {
-            if (markers[i] != null) Destroy(markers[i].gameObject);
-        }
+        return created;
     }
 
     private static bool IsCoinMarker(Transform transform)
