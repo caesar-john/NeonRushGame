@@ -50,7 +50,7 @@ public class PlayerJump : MonoBehaviour
         {
             isGrounded = false;
 
-            animator.SetTrigger("Jump");
+            if (animator != null) animator.SetTrigger("Jump");
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
 
@@ -69,7 +69,6 @@ public class PlayerJump : MonoBehaviour
             if (contact.normal.y > 0.5f && rb.linearVelocity.y <= 0.1f)
             {
                 isGrounded = true;
-                Debug.Log("PLAYER MENDARAT - IsGrounded TRUE");
                 return;
             }
         }
