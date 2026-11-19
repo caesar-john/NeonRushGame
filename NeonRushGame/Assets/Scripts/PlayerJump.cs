@@ -68,6 +68,16 @@ public class PlayerJump : MonoBehaviour
         }
     }
 
+    private void FixedUpdate()
+    {
+        // Saat menapak, buang sisa kecepatan jatuh supaya karakter tidak
+        // memantul kecil-kecil di permukaan jalan.
+        if (isGrounded && rb != null && rb.linearVelocity.y < 0f)
+        {
+            rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        }
+    }
+
     private void PlayState(string stateName)
     {
         if (animator == null) return;

@@ -151,6 +151,38 @@ public class NeonGameSceneAdapter : MonoBehaviour
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             body.constraints |= RigidbodyConstraints.FreezeRotation;
         }
+
+        AlignColliderToFloor(player);
+    }
+
+    // Collider pemain menjulur ke bawah permukaan jalan: dasar collider ada di
+    // y = 0, sedangkan permukaan jalan (dan telapak kaki karakter) di y = 0.5.
+    // Karena collider selalu terbenam, fisika mendorong pemain ke atas terus
+    // menerus dan karakter terlihat melompat-lompat sendiri saat berlari.
+    // Di sini collider digeser naik sampai dasarnya pas menempel di jalan,
+    // tanpa mengubah posisi karakter maupun nilai di scene.
+    private static void AlignColliderToFloor(Transform player)
+    {
+        Collider collider = player.GetComponent<Collider>();
+        if (collider == null) return;
+
+        Physics.SyncTransforms();
+
+        float floorTop = FloorCenterY + FloorThickness * 0.5f;
+        float penetration = floorTop - collider.bounds.min.y;
+        if (penetration <= 0.001f) return;
+
+        if (collider is BoxCollider box)
+            box.center += Vector3.up * penetration;
+        else if (collider is CapsuleCollider capsule)
+            capsule.center += Vector3.up * penetration;
+        else if (collider is SphereCollider sphere)
+            sphere.center += Vector3.up * penetration;
+
+        Physics.SyncTransforms();
+
+        Debug.Log("[NeonGameSceneAdapter] Collider pemain dinaikkan " + penetration.ToString("0.##") +
+                  " agar tidak terbenam di jalan (penyebab karakter melompat sendiri).", player);
     }
 
     // Hazard yang ditempel ke properti dekorasi (barrier, mobil, laser hiasan)
