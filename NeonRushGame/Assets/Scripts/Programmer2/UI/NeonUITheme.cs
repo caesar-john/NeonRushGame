@@ -402,7 +402,7 @@ public class NeonUITheme : MonoBehaviour
             "TopScoreText",
             new Vector2(0f, 1f),
             new Vector2(0f, 1f),
-            new Vector2(330f, -14f),
+            new Vector2(390f, -14f),
             new Vector2(220f, 86f),
             Gold,
             2,
