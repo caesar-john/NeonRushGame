@@ -8,6 +8,7 @@ public class HUDController : MonoBehaviour
     [SerializeField] private TMP_Text scoreText;
     [SerializeField] private TMP_Text distanceText;
     [SerializeField] private TMP_Text coinText;
+    [SerializeField] private TMP_Text topScoreText;
 
     [Header("Game Over")]
     [SerializeField] private TMP_Text finalScoreText;
@@ -19,6 +20,7 @@ public class HUDController : MonoBehaviour
     [SerializeField] private string scorePrefix = "SKOR  ";
     [SerializeField] private string distanceSuffix = " m";
     [SerializeField] private string coinPrefix = "KOIN  x";
+    [SerializeField] private string topScorePrefix = "TOP  ";
 
     private GameManager gameManager;
     private ScoreManager scoreManager;
@@ -55,6 +57,7 @@ public class HUDController : MonoBehaviour
         {
             scoreManager.ScoreChanged += OnScoreChanged;
             scoreManager.DistanceChanged += OnDistanceChanged;
+            scoreManager.BestScoreChanged += OnBestScoreChanged;
         }
 
         subscribed = true;
@@ -74,6 +77,7 @@ public class HUDController : MonoBehaviour
         {
             scoreManager.ScoreChanged -= OnScoreChanged;
             scoreManager.DistanceChanged -= OnDistanceChanged;
+            scoreManager.BestScoreChanged -= OnBestScoreChanged;
         }
 
         subscribed = false;
@@ -84,9 +88,12 @@ public class HUDController : MonoBehaviour
         if (scoreManager != null)
         {
             OnScoreChanged(scoreManager.Score);
+
             OnDistanceChanged(
                 Mathf.FloorToInt(scoreManager.Distance)
             );
+
+            OnBestScoreChanged(scoreManager.BestScore);
         }
 
         if (gameManager != null)
@@ -99,6 +106,14 @@ public class HUDController : MonoBehaviour
     {
         if (scoreText != null)
             scoreText.text = scorePrefix + score;
+
+        // Tampilkan rekor lama atau skor saat ini,
+        // mana yang lebih tinggi.
+        if (topScoreText != null && scoreManager != null)
+        {
+            int top = Mathf.Max(scoreManager.BestScore, score);
+            topScoreText.text = topScorePrefix + top;
+        }
     }
 
     private void OnDistanceChanged(int meters)
@@ -111,6 +126,12 @@ public class HUDController : MonoBehaviour
     {
         if (coinText != null)
             coinText.text = coinPrefix + coins;
+    }
+
+    private void OnBestScoreChanged(int bestScore)
+    {
+        if (topScoreText != null)
+            topScoreText.text = topScorePrefix + bestScore;
     }
 
     private void OnRunEnded()
@@ -147,18 +168,17 @@ public class HUDController : MonoBehaviour
         else
             Debug.LogWarning("[HUD] Final Coin Text belum terhubung!");
 
-        if (bestScoreText != null)
-        {
-            int best = Mathf.Max(
-                scoreManager.BestScore,
-                scoreManager.Score
-            );
+        int best = Mathf.Max(
+            scoreManager.BestScore,
+            scoreManager.Score
+        );
 
+        if (bestScoreText != null)
             bestScoreText.text = "TERBAIK  " + best;
-        }
         else
-        {
             Debug.LogWarning("[HUD] Best Score Text belum terhubung!");
-        }
+
+        if (topScoreText != null)
+            topScoreText.text = topScorePrefix + best;
     }
 }

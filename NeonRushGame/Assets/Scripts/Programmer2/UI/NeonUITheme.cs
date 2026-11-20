@@ -350,6 +350,7 @@ public class NeonUITheme : MonoBehaviour
         if (hud == null) return;
         if (hud.Find("__NeonHUDBar") != null) return;
 
+        // ===================== HUD BAR =====================
         GameObject barObject = new GameObject("__NeonHUDBar", typeof(RectTransform), typeof(Image));
         barObject.transform.SetParent(hud, false);
         barObject.transform.SetAsFirstSibling();
@@ -367,21 +368,72 @@ public class NeonUITheme : MonoBehaviour
         bar.color = new Color(0.008f, 0.016f, 0.042f, 0.93f);
         bar.raycastTarget = false;
 
+        // ===================== HUD LINE =====================
         GameObject lineObject = new GameObject("__NeonHUDLine", typeof(RectTransform), typeof(Image));
         lineObject.transform.SetParent(barObject.transform, false);
+
         RectTransform lineRect = lineObject.GetComponent<RectTransform>();
         lineRect.anchorMin = new Vector2(0f, 0f);
         lineRect.anchorMax = new Vector2(1f, 0f);
         lineRect.pivot = new Vector2(0.5f, 0f);
         lineRect.anchoredPosition = Vector2.zero;
         lineRect.sizeDelta = new Vector2(0f, 2f);
+
         Image line = lineObject.GetComponent<Image>();
         line.color = new Color(Cyan.r, Cyan.g, Cyan.b, 0.5f);
         line.raycastTarget = false;
 
-        AddHudChip(hud, "ScoreText", new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(24f, -14f), new Vector2(240f, 86f), Cyan, 1, 170f);
-        AddHudChip(hud, "DistanceText", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -14f), new Vector2(160f, 86f), Cyan, 2, 150f);
-        AddHudChip(hud, "CoinText", new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-24f, -14f), new Vector2(240f, 86f), Gold, 3, 170f);
+        // ===================== SCORE =====================
+        AddHudChip(
+            hud,
+            "ScoreText",
+            new Vector2(0f, 1f),
+            new Vector2(0f, 1f),
+            new Vector2(24f, -14f),
+            new Vector2(20f, 86f),
+            Cyan,
+            1,
+            170f
+        );
+
+        // ===================== TOP SCORE =====================
+        AddHudChip(
+            hud,
+            "TopScoreText",
+            new Vector2(0f, 1f),
+            new Vector2(0f, 1f),
+            new Vector2(330f, -14f),
+            new Vector2(220f, 86f),
+            Gold,
+            2,
+            170f
+        );
+
+        // ===================== DISTANCE =====================
+        AddHudChip(
+            hud,
+            "DistanceText",
+            new Vector2(0.5f, 1f),
+            new Vector2(0.5f, 1f),
+            new Vector2(0f, -14f),
+            new Vector2(160f, 86f),
+            Cyan,
+            3,
+            150f
+        );
+
+        // ===================== COIN =====================
+        AddHudChip(
+            hud,
+            "CoinText",
+            new Vector2(1f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(-24f, -14f),
+            new Vector2(240f, 86f),
+            Gold,
+            4,
+            170f
+        );
     }
 
     private static void AddHudChip(Transform hud, string textName, Vector2 anchor, Vector2 pivot, Vector2 position, Vector2 size, Color accent, int siblingIndex, float minWidth)
@@ -665,6 +717,13 @@ public class NeonUITheme : MonoBehaviour
                 text.characterSpacing = 2f;
                 text.color = Cyan;
                 SetUnderlay(text, Cyan, 0.35f, 0f, 0f, 0.6f, 0.45f);
+                break;
+
+            case "TopScoreText":
+                text.fontStyle = FontStyles.Bold;
+                text.characterSpacing = 2f;
+                text.color = Gold;
+                SetUnderlay(text, Gold, 0.4f, 0f, 0f, 0.6f, 0.45f);
                 break;
 
             case "DistanceText":
