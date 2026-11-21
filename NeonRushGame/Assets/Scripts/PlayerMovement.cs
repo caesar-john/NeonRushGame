@@ -9,6 +9,7 @@ public class PlayerMovement : MonoBehaviour
 
     private Rigidbody rb;
     private int currentLane = 1;
+    private bool canMove = true;
 
     void Start()
     {
@@ -19,6 +20,7 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        if (!canMove) return;
         // Pindah ke kiri
         if (Input.GetKeyDown(KeyCode.A) ||
             Input.GetKeyDown(KeyCode.LeftArrow))
@@ -34,15 +36,29 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    public void StopMovement()
+    {
+        canMove = false;
+        rb.linearVelocity = Vector3.zero;
+    }
+
     void FixedUpdate()
     {
+        if (!canMove) return;
         Vector3 movement = rb.position;
 
-        // Gerakan maju pada sumbu X negatif
+        // Gerakan maju p
         movement.x -= forwardSpeed * Time.fixedDeltaTime;
 
-        // Perpindahan jalur pada sumbu Z
-        movement.z = (currentLane - 1) * laneDistance;
+        //target posisi lane
+        float targetZ = (currentLane - 1) * laneDistance;
+
+        // Perpindahan lane secara bertahap
+        movement.z = Mathf.MoveTowards(
+            rb.position.z,
+            targetZ,
+            30 * Time.fixedDeltaTime
+            );
 
         rb.MovePosition(movement);
     }

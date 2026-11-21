@@ -11,6 +11,9 @@ public class Hazard : MonoBehaviour
     private Collider hazardCollider;
     private Collider HazardCollider => hazardCollider != null ? hazardCollider : (hazardCollider = GetComponent<Collider>());
 
+    private Animator playerAnimator;
+    private bool isProcessingHit;
+
     private void OnTriggerEnter(Collider other)
     {
         TryHit(other);
@@ -22,17 +25,60 @@ public class Hazard : MonoBehaviour
     }
 
     private void TryHit(Collider other)
-    {
+    { 
         if (other == null || !IsPlayer(other)) return;
+
+        Debug.Log("HAZARD TERDETEKSI: " + other.name);
+
         if (GameManager.Instance == null || !GameManager.Instance.IsPlaying) return;
 
-        // Pemain yang sudah berada di atas puncak rintangan (sedang melompat)
-        // tidak boleh dianggap menabrak, walaupun collider besarnya masih
-        // bersinggungan secara horizontal.
+        // Abaikan tabrakan jika pemain berhasil melompati rintangan.
         if (WasJumpedOver(other)) return;
 
+        // Mencegah tabrakan diproses berulang kali.
+        if (isProcessingHit) return;
+
+        isProcessingHit = true;
+
+        // Putar suara tabrakan.
         AudioManager.PlaySfx(SfxId.Crash);
-        if (endGameOnTouch) GameManager.Instance.EndGame();
+
+        // Ambil Animator dari child Player.
+        playerAnimator = other.GetComponentInChildren<Animator>();
+
+        PlayerMovement movement = other.GetComponentInParent<PlayerMovement>();
+
+        if (movement != null)
+        {
+            movement.StopMovement();
+        }
+
+        // Jalankan animasi Falling.
+        if (playerAnimator != null)
+        {
+            playerAnimator.SetTrigger("Hit");
+        }
+
+        // Game Over akan dipanggil setelah animasi selesai.
+        StartCoroutine(EndGameAfterFalling());
+
+        
+    }
+
+    private System.Collections.IEnumerator EndGameAfterFalling()
+    {
+        if (playerAnimator != null)
+        {
+            yield return new WaitUntil(() =>
+                playerAnimator.GetCurrentAnimatorStateInfo(0).IsName("Falling")
+                && playerAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f
+            );
+        }
+
+        if (endGameOnTouch && GameManager.Instance != null)
+        {
+            GameManager.Instance.EndGame();
+        }
     }
 
     private bool WasJumpedOver(Collider other)
