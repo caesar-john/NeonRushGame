@@ -509,16 +509,8 @@ public class NeonUITheme : MonoBehaviour
 
         RawImage scan = CreateScanlines(rootObject.transform);
 
-        Image blobCyan = CreateBlob(rootObject.transform, "BlobCyan", Cyan,
-            new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(-220f, -220f), 1100f);
-
-        Image blobMagenta = CreateBlob(rootObject.transform, "BlobMagenta", Magenta,
-            new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(220f, 220f), 1100f);
-
         NeonAtmosphere atmosphere = rootObject.AddComponent<NeonAtmosphere>();
         atmosphere.scanlines = scan;
-        atmosphere.blobCyan = blobCyan;
-        atmosphere.blobMagenta = blobMagenta;
     }
 
     private static RawImage CreateScanlines(Transform parent)
