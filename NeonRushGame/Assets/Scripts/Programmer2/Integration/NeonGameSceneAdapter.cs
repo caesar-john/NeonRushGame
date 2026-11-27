@@ -126,6 +126,8 @@ public class NeonGameSceneAdapter : MonoBehaviour
         DisableDecorativeHazards(scene);
         BuildCoins(environment.transform, spawnPoint);
         BuildHazards(environment.transform, spawnPoint);
+        BuildNeonRoadAssets(environment.transform, spawnPoint);
+        NeonAtmosphereRig.Install(scene);
         BeginTiling(environment.transform);
     }
 
@@ -519,22 +521,35 @@ public class NeonGameSceneAdapter : MonoBehaviour
 
     private static void CreateFallbackVisual(Transform parent)
     {
-        GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        visual.name = "Visual";
-        visual.transform.SetParent(parent, false);
-        visual.transform.localPosition = Vector3.zero;
-        visual.transform.localScale = Vector3.one * 0.8f;
+        Material goldRimMat = NeonVfxFactory.CreateLitMaterial(
+            new Color(1f, 0.78f, 0.16f), 0.85f, 0.88f,
+            new Color(1f, 0.75f, 0.15f), 1.4f);
+        Material coreMat = NeonVfxFactory.CreateEmissiveUnlitMaterial(
+            new Color(1f, 0.92f, 0.35f), 2.2f);
+        Material accentMat = NeonVfxFactory.CreateEmissiveUnlitMaterial(
+            new Color(0.15f, 0.96f, 1f), 2.0f);
 
-        Collider collider = visual.GetComponent<Collider>();
-        if (collider != null) Destroy(collider);
+        GameObject visualRoot = new GameObject("Visual");
+        visualRoot.transform.SetParent(parent, false);
 
-        Renderer renderer = visual.GetComponent<Renderer>();
-        if (renderer != null) renderer.material.color = new Color(1f, 0.82f, 0.25f);
+        // Outer metallic gold disc
+        GameObject disc = CreateCleanPrimitive(PrimitiveType.Cylinder, "CoinDisc", visualRoot.transform,
+            Vector3.zero, new Vector3(0f, 0f, 90f), new Vector3(1.5f, 0.14f, 1.5f), goldRimMat);
+
+        // Inner bright core
+        CreateCleanPrimitive(PrimitiveType.Cylinder, "CoinCore", visualRoot.transform,
+            Vector3.zero, new Vector3(0f, 0f, 90f), new Vector3(0.95f, 0.18f, 0.95f), coreMat);
+
+        // Cyan energy diamond emblem across the coin face
+        CreateCleanPrimitive(PrimitiveType.Cube, "CoinEmblem", visualRoot.transform,
+            Vector3.zero, new Vector3(45f, 0f, 0f), new Vector3(0.32f, 0.55f, 0.55f), accentMat);
+
+        if (disc != null) disc.transform.localPosition = Vector3.zero;
     }
 
-    // Rintangan neon dipasang runtime di jalur -X agar Game Over/Restart dan SFX
-    // crash aktif tanpa mengubah scene milik desainer. Hazard dibuat sebagai
-    // anak 'Environment' supaya ikut tersalin saat map didaur ulang.
+    // Rintangan neon 3D bervariasi dipasang runtime di jalur -X agar visual lebih
+    // kaya (Laser Gate, Cyber Roadblock, Plasma Pylon) sambil tetap mempertahankan
+    // ukuran BoxCollider trigger & nama "NeonHazard ..." untuk kompatibilitas penuh.
     private void BuildHazards(Transform environment, Vector3 spawnPoint)
     {
         float minX;
@@ -545,7 +560,23 @@ public class NeonGameSceneAdapter : MonoBehaviour
             maxX = spawnPoint.x;
         }
 
-        Material material = CreateHazardMaterial();
+        Material darkMetalMat = NeonVfxFactory.CreateLitMaterial(
+            new Color(0.08f, 0.10f, 0.16f), 0.78f, 0.65f,
+            new Color(0.05f, 0.18f, 0.30f), 0.25f);
+        Material trimSteelMat = NeonVfxFactory.CreateLitMaterial(
+            new Color(0.18f, 0.22f, 0.30f), 0.85f, 0.75f,
+            Color.black, 0f);
+        Material laserMat = NeonVfxFactory.CreateEmissiveUnlitMaterial(
+            new Color(1f, 0.12f, 0.48f), 2.8f);
+        Material fieldMat = NeonVfxFactory.CreateEmissiveUnlitMaterial(
+            new Color(1f, 0.10f, 0.45f), 1.3f, true, 0.28f);
+        Material warnAmberMat = NeonVfxFactory.CreateEmissiveUnlitMaterial(
+            new Color(1f, 0.46f, 0.08f), 2.5f);
+        Material cyanAccentMat = NeonVfxFactory.CreateEmissiveUnlitMaterial(
+            new Color(0.12f, 0.96f, 1f), 2.2f);
+        Material plasmaVioletMat = NeonVfxFactory.CreateEmissiveUnlitMaterial(
+            new Color(0.92f, 0.18f, 1f), 2.8f);
+
         int[][] patterns =
         {
             new[] { 0 },
@@ -555,7 +586,8 @@ public class NeonGameSceneAdapter : MonoBehaviour
             new[] { 1 }
         };
 
-        float centerY = FloorCenterY + FloorThickness * 0.5f + HazardHeight * 0.5f;
+        float floorTop = FloorCenterY + FloorThickness * 0.5f;
+        float centerY = floorTop + HazardHeight * 0.5f;
         int created = 0;
         int step = 0;
 
@@ -566,18 +598,30 @@ public class NeonGameSceneAdapter : MonoBehaviour
             for (int i = 0; i < lanes.Length; i++)
             {
                 int lane = lanes[i];
+                int variant = (step + i) % 3;
 
-                GameObject hazard = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                hazard.name = HazardName + " " + step + "-" + lane;
+                GameObject hazard = new GameObject(HazardName + " " + step + "-" + lane);
                 hazard.transform.position = new Vector3(x, centerY, (lane - 1) * HazardLaneDistance);
-                hazard.transform.localScale = new Vector3(HazardLength, HazardHeight, HazardDepth);
+                hazard.transform.rotation = Quaternion.identity;
                 hazard.transform.SetParent(environment, true);
 
-                BoxCollider box = hazard.GetComponent<BoxCollider>();
-                if (box != null) box.isTrigger = true;
+                BoxCollider box = hazard.AddComponent<BoxCollider>();
+                box.isTrigger = true;
+                box.size = new Vector3(HazardLength, HazardHeight, HazardDepth);
+                box.center = Vector3.zero;
 
-                Renderer renderer = hazard.GetComponent<Renderer>();
-                if (renderer != null && material != null) renderer.sharedMaterial = material;
+                switch (variant)
+                {
+                    case 0:
+                        BuildLaserGateVisual(hazard.transform, darkMetalMat, trimSteelMat, laserMat, fieldMat, cyanAccentMat);
+                        break;
+                    case 1:
+                        BuildCyberBarricadeVisual(hazard.transform, darkMetalMat, trimSteelMat, warnAmberMat, laserMat);
+                        break;
+                    default:
+                        BuildPlasmaPylonVisual(hazard.transform, darkMetalMat, trimSteelMat, plasmaVioletMat, cyanAccentMat);
+                        break;
+                }
 
                 hazard.AddComponent<Hazard>();
                 created++;
@@ -587,30 +631,188 @@ public class NeonGameSceneAdapter : MonoBehaviour
         }
 
         if (created > 0)
-            Debug.Log("[NeonGameSceneAdapter] " + created + " hazard neon dipasang di lajur -X.", this);
+            Debug.Log("[NeonGameSceneAdapter] " + created + " hazard 3D neon bervariasi dipasang di lajur -X.", this);
     }
 
-    private static Material CreateHazardMaterial()
+    private static void BuildLaserGateVisual(Transform root, Material darkMetal, Material trimSteel, Material laserMat, Material fieldMat, Material cyanMat)
     {
-        Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-        if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
-        if (shader == null) shader = Shader.Find("Standard");
-        if (shader == null) return null;
+        float halfH = HazardHeight * 0.5f;
+        float halfW = HazardDepth * 0.5f - 0.35f;
 
-        Color color = new Color(1f, 0.15f, 0.55f);
-        Material material = new Material(shader);
-        material.color = color;
-
-        if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
-        if (material.HasProperty("_Color")) material.SetColor("_Color", color);
-
-        if (material.HasProperty("_EmissionColor"))
+        // Twin emitter pylons on left & right of lane
+        for (int side = -1; side <= 1; side += 2)
         {
-            material.EnableKeyword("_EMISSION");
-            material.SetColor("_EmissionColor", color * 2f);
+            float z = side * halfW;
+            // Pedestal base
+            CreateCleanPrimitive(PrimitiveType.Cube, "Base", root,
+                new Vector3(0f, -halfH + 0.22f, z), Vector3.zero, new Vector3(1.5f, 0.44f, 1.15f), darkMetal);
+            // Main upright emitter tower
+            CreateCleanPrimitive(PrimitiveType.Cube, "Pylon", root,
+                new Vector3(0f, 0.05f, z), Vector3.zero, new Vector3(0.85f, HazardHeight - 0.1f, 0.72f), darkMetal);
+            // Metallic collar
+            CreateCleanPrimitive(PrimitiveType.Cube, "Collar", root,
+                new Vector3(0f, -0.35f, z), Vector3.zero, new Vector3(1.02f, 0.28f, 0.88f), trimSteel);
+            // Glowing cyan emitter status cap
+            CreateCleanPrimitive(PrimitiveType.Cube, "CapGlow", root,
+                new Vector3(0f, halfH + 0.04f, z), Vector3.zero, new Vector3(0.62f, 0.18f, 0.54f), cyanMat);
         }
 
-        return material;
+        // 3 horizontal plasma laser beams spanning the lane (along Z)
+        float beamSpan = halfW * 2f - 0.4f;
+        Renderer[] pulseList = new Renderer[3];
+        float[] beamYs = { -0.72f, 0.0f, 0.72f };
+
+        for (int b = 0; b < 3; b++)
+        {
+            GameObject beam = CreateCleanPrimitive(PrimitiveType.Cylinder, "LaserBeam_" + b, root,
+                new Vector3(0f, beamYs[b], 0f), new Vector3(90f, 0f, 0f),
+                new Vector3(0.22f, beamSpan * 0.5f, 0.22f), laserMat);
+            pulseList[b] = beam.GetComponent<Renderer>();
+        }
+
+        // Subtle translucent holographic barrier sheet between beams
+        CreateCleanPrimitive(PrimitiveType.Cube, "HoloField", root,
+            Vector3.zero, Vector3.zero, new Vector3(0.08f, HazardHeight - 0.55f, beamSpan), fieldMat);
+
+        NeonHazardVisualFX fx = root.gameObject.AddComponent<NeonHazardVisualFX>();
+        fx.pulseRenderers = pulseList;
+        fx.pulseBaseColor = new Color(1f, 0.12f, 0.48f);
+        fx.pulseMinIntensity = 1.9f;
+        fx.pulseMaxIntensity = 3.5f;
+        fx.pulseSpeed = 7.5f;
+    }
+
+    private static void BuildCyberBarricadeVisual(Transform root, Material darkMetal, Material trimSteel, Material amberMat, Material magentaMat)
+    {
+        float halfH = HazardHeight * 0.5f;
+        float fullW = HazardDepth - 0.2f;
+
+        // Heavy armored slanted barricade wall
+        CreateCleanPrimitive(PrimitiveType.Cube, "BarricadeBase", root,
+            new Vector3(0f, -halfH + 0.45f, 0f), Vector3.zero, new Vector3(2.2f, 0.9f, fullW), darkMetal);
+        CreateCleanPrimitive(PrimitiveType.Cube, "BarricadeShield", root,
+            new Vector3(0f, 0.15f, 0f), new Vector3(0f, 0f, -12f), new Vector3(0.95f, HazardHeight * 0.78f, fullW - 0.25f), darkMetal);
+
+        // Reinforced steel edge ribs
+        for (int s = -1; s <= 1; s++)
+        {
+            CreateCleanPrimitive(PrimitiveType.Cube, "Rib_" + s, root,
+                new Vector3(0.35f, 0.05f, s * (fullW * 0.36f)), new Vector3(0f, 0f, -12f),
+                new Vector3(0.55f, HazardHeight * 0.82f, 0.36f), trimSteel);
+        }
+
+        // High-visibility glowing horizontal neon warning strips (front & back facing)
+        CreateCleanPrimitive(PrimitiveType.Cube, "WarnStripUpper", root,
+            new Vector3(0.52f, 0.55f, 0f), Vector3.zero, new Vector3(0.18f, 0.26f, fullW - 0.5f), amberMat);
+        CreateCleanPrimitive(PrimitiveType.Cube, "WarnStripLower", root,
+            new Vector3(0.75f, -0.35f, 0f), Vector3.zero, new Vector3(0.18f, 0.22f, fullW - 0.5f), magentaMat);
+
+        // Twin flashing warning beacons on top
+        Renderer[] beacons = new Renderer[2];
+        for (int i = 0; i < 2; i++)
+        {
+            float z = (i == 0 ? -1f : 1f) * (fullW * 0.34f);
+            GameObject beacon = CreateCleanPrimitive(PrimitiveType.Cylinder, "Beacon_" + i, root,
+                new Vector3(0f, halfH + 0.14f, z), Vector3.zero, new Vector3(0.45f, 0.22f, 0.45f), amberMat);
+            beacons[i] = beacon.GetComponent<Renderer>();
+        }
+
+        NeonHazardVisualFX fx = root.gameObject.AddComponent<NeonHazardVisualFX>();
+        fx.pulseRenderers = beacons;
+        fx.pulseBaseColor = new Color(1f, 0.42f, 0.06f);
+        fx.pulseMinIntensity = 1.2f;
+        fx.pulseMaxIntensity = 3.6f;
+        fx.pulseSpeed = 9f;
+    }
+
+    private static void BuildPlasmaPylonVisual(Transform root, Material darkMetal, Material trimSteel, Material plasmaMat, Material cyanMat)
+    {
+        float halfH = HazardHeight * 0.5f;
+        float fullW = HazardDepth - 0.3f;
+
+        // Wide low cyber containment deck spanning the lane
+        CreateCleanPrimitive(PrimitiveType.Cube, "Deck", root,
+            new Vector3(0f, -halfH + 0.30f, 0f), Vector3.zero, new Vector3(2.4f, 0.6f, fullW), darkMetal);
+        CreateCleanPrimitive(PrimitiveType.Cube, "DeckTrim", root,
+            new Vector3(0f, -halfH + 0.62f, 0f), Vector3.zero, new Vector3(2.5f, 0.12f, fullW - 0.3f), cyanMat);
+
+        // Side energy projector prongs
+        for (int side = -1; side <= 1; side += 2)
+        {
+            float z = side * (fullW * 0.42f);
+            CreateCleanPrimitive(PrimitiveType.Cube, "SideProng", root,
+                new Vector3(0f, -0.15f, z), new Vector3(side * 14f, 0f, 0f), new Vector3(0.95f, 1.85f, 0.55f), trimSteel);
+        }
+
+        // Hovering spinning plasma core assembly in the center
+        GameObject corePivot = new GameObject("PlasmaCorePivot");
+        corePivot.transform.SetParent(root, false);
+        corePivot.transform.localPosition = new Vector3(0f, 0.35f, 0f);
+
+        GameObject core = CreateCleanPrimitive(PrimitiveType.Cube, "PlasmaCore", corePivot.transform,
+            Vector3.zero, new Vector3(45f, 45f, 45f), new Vector3(1.15f, 1.15f, 1.15f), plasmaMat);
+
+        // Horizontal plasma containment bars extending from core
+        GameObject arcL = CreateCleanPrimitive(PrimitiveType.Cube, "PlasmaArcL", root,
+            new Vector3(0f, 0.35f, -fullW * 0.22f), Vector3.zero, new Vector3(0.24f, 0.24f, fullW * 0.36f), plasmaMat);
+        GameObject arcR = CreateCleanPrimitive(PrimitiveType.Cube, "PlasmaArcR", root,
+            new Vector3(0f, 0.35f, fullW * 0.22f), Vector3.zero, new Vector3(0.24f, 0.24f, fullW * 0.36f), plasmaMat);
+
+        NeonHazardVisualFX fx = root.gameObject.AddComponent<NeonHazardVisualFX>();
+        fx.spinner = corePivot.transform;
+        fx.spinSpeed = 140f;
+        fx.hoverTarget = corePivot.transform;
+        fx.hoverAmplitude = 0.16f;
+        fx.hoverSpeed = 3.8f;
+        fx.pulseRenderers = new[] { core.GetComponent<Renderer>(), arcL.GetComponent<Renderer>(), arcR.GetComponent<Renderer>() };
+        fx.pulseBaseColor = new Color(0.92f, 0.18f, 1f);
+        fx.pulseMinIntensity = 1.8f;
+        fx.pulseMaxIntensity = 3.4f;
+        fx.pulseSpeed = 6.5f;
+    }
+
+    // Delegasikan pembangunan asset jalan, gerbang, skyline, & prop neon ke NeonEnvironmentEnricher.
+    private void BuildNeonRoadAssets(Transform environment, Vector3 spawnPoint)
+    {
+        float minX;
+        float maxX;
+        if (!MeasureRoadX(environment, out minX, out maxX))
+        {
+            minX = spawnPoint.x - 560f;
+            maxX = spawnPoint.x + 20f;
+        }
+
+        float floorTop = FloorCenterY + FloorThickness * 0.5f;
+        NeonEnvironmentEnricher.Build(environment, spawnPoint, floorTop, minX, maxX);
+    }
+
+    private static GameObject CreateCleanPrimitive(
+        PrimitiveType type,
+        string name,
+        Transform parent,
+        Vector3 localPos,
+        Vector3 localEuler,
+        Vector3 localScale,
+        Material material)
+    {
+        GameObject go = GameObject.CreatePrimitive(type);
+        go.name = name;
+        go.transform.SetParent(parent, false);
+        go.transform.localPosition = localPos;
+        go.transform.localEulerAngles = localEuler;
+        go.transform.localScale = localScale;
+
+        Collider col = go.GetComponent<Collider>();
+        if (col != null) Destroy(col);
+
+        Renderer renderer = go.GetComponent<Renderer>();
+        if (renderer != null && material != null)
+        {
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        return go;
     }
 
     // Map desainer hanya sepanjang ~580 m, jadi salinan environment disambung

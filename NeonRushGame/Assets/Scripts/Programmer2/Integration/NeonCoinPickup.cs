@@ -9,7 +9,9 @@ public class NeonCoinPickup : MonoBehaviour
     [SerializeField] private int coinValue = 1;
     [SerializeField] private float collectRadius = 5f;
     [SerializeField] private float boundsReach = 1.5f;
-    [SerializeField] private float rotateSpeed = 100f;
+    [SerializeField] private float rotateSpeed = 125f;
+    [SerializeField] private float bobAmplitude = 0.22f;
+    [SerializeField] private float bobSpeed = 3.2f;
 
     private static Transform cachedPlayer;
 
@@ -17,6 +19,7 @@ public class NeonCoinPickup : MonoBehaviour
     private Vector3 startLocalPosition;
     private Quaternion startLocalRotation;
     private bool hasStartPose;
+    private float bobPhase;
 
     public int CoinValue
     {
@@ -38,6 +41,7 @@ public class NeonCoinPickup : MonoBehaviour
         startLocalPosition = transform.localPosition;
         startLocalRotation = transform.localRotation;
         hasStartPose = true;
+        bobPhase = (transform.position.x + transform.position.z) * 0.25f;
     }
 
     private void OnEnable()
@@ -55,6 +59,13 @@ public class NeonCoinPickup : MonoBehaviour
         if (collected) return;
 
         transform.Rotate(0f, rotateSpeed * Time.deltaTime, 0f, Space.World);
+
+        if (hasStartPose && bobAmplitude > 0.001f)
+        {
+            Vector3 p = startLocalPosition;
+            p.y += Mathf.Sin(Time.time * bobSpeed + bobPhase) * bobAmplitude;
+            transform.localPosition = p;
+        }
 
         Transform player = ResolvePlayer();
         if (player == null) return;
@@ -92,6 +103,7 @@ public class NeonCoinPickup : MonoBehaviour
             Debug.LogWarning("[NeonCoinPickup] GameManager tidak ditemukan, koin tidak dihitung.", this);
 
         AudioManager.PlaySfx(SfxId.Coin);
+        NeonVfxFactory.SpawnCoinPickupBurst(transform.position);
 
         gameObject.SetActive(false);
     }

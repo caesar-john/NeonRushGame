@@ -25,6 +25,18 @@ public class HUDController : MonoBehaviour
     private GameManager gameManager;
     private ScoreManager scoreManager;
     private bool subscribed;
+    private bool compactHudMode;
+
+    /// <summary>
+    /// Dipanggil oleh NeonUITheme saat HUD sudah memiliki label terpisah
+    /// (SCORE / BEST / COINS) agar teks angka tampil ringkas dan rapi.
+    /// </summary>
+    public void SetCompactHudMode(bool enabled)
+    {
+        if (compactHudMode == enabled) return;
+        compactHudMode = enabled;
+        RefreshAll();
+    }
 
     private void Start()
     {
@@ -32,7 +44,7 @@ public class HUDController : MonoBehaviour
 
         scoreManager = gameManager != null
             ? gameManager.ScoreSystem
-            : FindObjectOfType<ScoreManager>();
+            : FindFirstObjectByType<ScoreManager>();
 
         Subscribe();
         RefreshAll();
@@ -105,33 +117,33 @@ public class HUDController : MonoBehaviour
     private void OnScoreChanged(int score)
     {
         if (scoreText != null)
-            scoreText.text = scorePrefix + score;
+            scoreText.text = compactHudMode ? score.ToString("N0") : scorePrefix + score;
 
         // Tampilkan rekor lama atau skor saat ini,
         // mana yang lebih tinggi.
         if (topScoreText != null && scoreManager != null)
         {
             int top = Mathf.Max(scoreManager.BestScore, score);
-            topScoreText.text = topScorePrefix + top;
+            topScoreText.text = compactHudMode ? top.ToString("N0") : topScorePrefix + top;
         }
     }
 
     private void OnDistanceChanged(int meters)
     {
         if (distanceText != null)
-            distanceText.text = meters + distanceSuffix;
+            distanceText.text = meters.ToString("N0") + distanceSuffix;
     }
 
     private void OnCoinsChanged(int coins)
     {
         if (coinText != null)
-            coinText.text = coinPrefix + coins;
+            coinText.text = compactHudMode ? coins.ToString("N0") : coinPrefix + coins;
     }
 
     private void OnBestScoreChanged(int bestScore)
     {
         if (topScoreText != null)
-            topScoreText.text = topScorePrefix + bestScore;
+            topScoreText.text = compactHudMode ? bestScore.ToString("N0") : topScorePrefix + bestScore;
     }
 
     private void OnRunEnded()
@@ -179,6 +191,6 @@ public class HUDController : MonoBehaviour
             Debug.LogWarning("[HUD] Best Score Text belum terhubung!");
 
         if (topScoreText != null)
-            topScoreText.text = topScorePrefix + best;
+            topScoreText.text = compactHudMode ? best.ToString("N0") : topScorePrefix + best;
     }
 }

@@ -16,6 +16,11 @@ public static class NeonUISprites
     private static Sprite vignette;
     private static Sprite circle;
     private static Sprite cornerBracket;
+    private static Sprite coinIcon;
+    private static Sprite starIcon;
+    private static Sprite boltIcon;
+    private static Sprite pauseIcon;
+    private static Sprite pillFill;
     private static Texture2D scanlines;
 
     public static Sprite ButtonFill
@@ -61,6 +66,31 @@ public static class NeonUISprites
     public static Sprite CornerBracket
     {
         get { if (cornerBracket == null) cornerBracket = BuildCorner(32, 5f); return cornerBracket; }
+    }
+
+    public static Sprite CoinIcon
+    {
+        get { if (coinIcon == null) coinIcon = BuildCoinIcon(64); return coinIcon; }
+    }
+
+    public static Sprite StarIcon
+    {
+        get { if (starIcon == null) starIcon = BuildStarIcon(64); return starIcon; }
+    }
+
+    public static Sprite BoltIcon
+    {
+        get { if (boltIcon == null) boltIcon = BuildBoltIcon(64); return boltIcon; }
+    }
+
+    public static Sprite PauseIcon
+    {
+        get { if (pauseIcon == null) pauseIcon = BuildPauseIcon(64); return pauseIcon; }
+    }
+
+    public static Sprite PillFill
+    {
+        get { if (pillFill == null) pillFill = BuildRounded(16, 4f, 0f, false); return pillFill; }
     }
 
     public static Texture2D Scanlines
@@ -249,6 +279,194 @@ public static class NeonUISprites
         tex.SetPixels(pixels);
         tex.Apply();
         return tex;
+    }
+
+    private static Sprite BuildCoinIcon(int size)
+    {
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.name = "NeonCoinIcon";
+        tex.wrapMode = TextureWrapMode.Clamp;
+        tex.filterMode = FilterMode.Bilinear;
+        tex.hideFlags = HideFlags.HideAndDontSave;
+
+        Color[] pixels = new Color[size * size];
+        float half = size * 0.5f;
+        float outerR = half - 3f;
+        float ringInner = outerR - 5.5f;
+        float innerDisc = ringInner - 3.5f;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x + 0.5f - half;
+                float dy = y + 0.5f - half;
+                float r = Mathf.Sqrt(dx * dx + dy * dy);
+
+                float ring = Mathf.Clamp01(outerR - r + 0.5f) * Mathf.Clamp01(r - ringInner + 0.5f);
+                float core = Mathf.Clamp01(innerDisc - r + 0.5f);
+
+                // Inner cyber diamond cutout highlight
+                float diamond = Mathf.Abs(dx) + Mathf.Abs(dy);
+                float diamondMask = Mathf.Clamp01(innerDisc * 0.58f - diamond + 0.5f);
+
+                float alpha = Mathf.Clamp01(Mathf.Max(ring, core * (0.35f + 0.65f * diamondMask)));
+                pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        tex.SetPixels(pixels);
+        tex.Apply();
+
+        Sprite sprite = Sprite.Create(tex, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
+        sprite.name = tex.name;
+        sprite.hideFlags = HideFlags.HideAndDontSave;
+        return sprite;
+    }
+
+    private static Sprite BuildStarIcon(int size)
+    {
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.name = "NeonStarIcon";
+        tex.wrapMode = TextureWrapMode.Clamp;
+        tex.filterMode = FilterMode.Bilinear;
+        tex.hideFlags = HideFlags.HideAndDontSave;
+
+        Color[] pixels = new Color[size * size];
+        float half = size * 0.5f;
+        float scale = half - 4f;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float nx = (x + 0.5f - half) / scale;
+                float ny = (y + 0.5f - half) / scale;
+
+                // 4-point sharp cyber star + center diamond
+                float ax = Mathf.Abs(nx);
+                float ay = Mathf.Abs(ny);
+                float starField = Mathf.Pow(ax, 0.58f) + Mathf.Pow(ay, 0.58f);
+                float alpha = Mathf.Clamp01((1.0f - starField) * scale * 0.65f + 0.5f);
+
+                pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        tex.SetPixels(pixels);
+        tex.Apply();
+
+        Sprite sprite = Sprite.Create(tex, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
+        sprite.name = tex.name;
+        sprite.hideFlags = HideFlags.HideAndDontSave;
+        return sprite;
+    }
+
+    private static Sprite BuildBoltIcon(int size)
+    {
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.name = "NeonBoltIcon";
+        tex.wrapMode = TextureWrapMode.Clamp;
+        tex.filterMode = FilterMode.Bilinear;
+        tex.hideFlags = HideFlags.HideAndDontSave;
+
+        Color[] pixels = new Color[size * size];
+        float half = size * 0.5f;
+        float scale = half - 4f;
+
+        // Lightning polygon in normalized [-1, 1] coords
+        Vector2[] poly =
+        {
+            new Vector2( 0.14f,  0.96f),
+            new Vector2(-0.56f,  0.02f),
+            new Vector2(-0.04f,  0.02f),
+            new Vector2(-0.22f, -0.96f),
+            new Vector2( 0.56f, -0.02f),
+            new Vector2( 0.04f, -0.02f)
+        };
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                Vector2 p = new Vector2((x + 0.5f - half) / scale, (y + 0.5f - half) / scale);
+                float d = SignedDistancePolygon(p, poly) * scale;
+                float alpha = Mathf.Clamp01(-d + 0.5f);
+                pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        tex.SetPixels(pixels);
+        tex.Apply();
+
+        Sprite sprite = Sprite.Create(tex, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
+        sprite.name = tex.name;
+        sprite.hideFlags = HideFlags.HideAndDontSave;
+        return sprite;
+    }
+
+    private static Sprite BuildPauseIcon(int size)
+    {
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.name = "NeonPauseIcon";
+        tex.wrapMode = TextureWrapMode.Clamp;
+        tex.filterMode = FilterMode.Bilinear;
+        tex.hideFlags = HideFlags.HideAndDontSave;
+
+        Color[] pixels = new Color[size * size];
+        float half = size * 0.5f;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float px = x + 0.5f - half;
+                float py = y + 0.5f - half;
+
+                float dLeft = SdRoundedBox(px + 10.5f, py, 5.2f, 17.5f, 2.6f);
+                float dRight = SdRoundedBox(px - 10.5f, py, 5.2f, 17.5f, 2.6f);
+                float d = Mathf.Min(dLeft, dRight);
+                float alpha = Mathf.Clamp01(-d + 0.5f);
+                pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        tex.SetPixels(pixels);
+        tex.Apply();
+
+        Sprite sprite = Sprite.Create(tex, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
+        sprite.name = tex.name;
+        sprite.hideFlags = HideFlags.HideAndDontSave;
+        return sprite;
+    }
+
+    private static float SdRoundedBox(float px, float py, float bx, float by, float r)
+    {
+        float qx = Mathf.Abs(px) - (bx - r);
+        float qy = Mathf.Abs(py) - (by - r);
+        float outside = Mathf.Sqrt(Mathf.Max(qx, 0f) * Mathf.Max(qx, 0f) + Mathf.Max(qy, 0f) * Mathf.Max(qy, 0f));
+        float inside = Mathf.Min(Mathf.Max(qx, qy), 0f);
+        return outside + inside - r;
+    }
+
+    private static float SignedDistancePolygon(Vector2 p, Vector2[] v)
+    {
+        float d = (p - v[0]).sqrMagnitude;
+        float s = 1f;
+        int n = v.Length;
+        for (int i = 0, j = n - 1; i < n; j = i, i++)
+        {
+            Vector2 e = v[j] - v[i];
+            Vector2 w = p - v[i];
+            Vector2 b = w - e * Mathf.Clamp01(Vector2.Dot(w, e) / Vector2.Dot(e, e));
+            d = Mathf.Min(d, b.sqrMagnitude);
+
+            bool c1 = p.y >= v[i].y;
+            bool c2 = p.y < v[j].y;
+            bool c3 = e.x * w.y > e.y * w.x;
+            if ((c1 && c2 && c3) || (!c1 && !c2 && !c3)) s = -s;
+        }
+        return s * Mathf.Sqrt(d);
     }
 }
 
@@ -590,5 +808,141 @@ public class NeonSceneFade : MonoBehaviour
         float alpha = 1f - Mathf.Clamp01(time / Duration);
         if (group != null) group.alpha = alpha;
         if (alpha <= 0f) playing = false;
+    }
+}
+
+// Brief border glow + subtle scale punch on a HUD card whenever triggered.
+public class NeonHudCardFlash : MonoBehaviour
+{
+    public Image border;
+    public Color baseColor = new Color(1f, 0.83f, 0.25f, 0.55f);
+    public Color flashColor = new Color(1f, 0.95f, 0.55f, 1f);
+    public float scaleBump = 0.055f;
+
+    private RectTransform rect;
+    private float flash;
+
+    private void Awake()
+    {
+        rect = transform as RectTransform;
+    }
+
+    public void Trigger()
+    {
+        flash = 1f;
+    }
+
+    private void Update()
+    {
+        if (flash <= 0f) return;
+
+        flash = Mathf.MoveTowards(flash, 0f, Time.unscaledDeltaTime * 3.8f);
+        float ease = flash * flash;
+
+        if (border != null) border.color = Color.Lerp(baseColor, flashColor, ease);
+        if (rect != null)
+        {
+            float s = 1f + scaleBump * ease;
+            rect.localScale = new Vector3(s, s, 1f);
+        }
+    }
+}
+
+// Drives live gameplay telemetry on the redesigned neon HUD:
+// speed gauge bar, coin-pickup card flash, and "NEW RECORD" toast.
+public class NeonHudLiveController : MonoBehaviour
+{
+    public RectTransform speedFillRect;
+    public Image speedFillImage;
+    public TMP_Text speedLabel;
+    public NeonHudCardFlash coinCardFlash;
+    public NeonHudCardFlash bestCardFlash;
+    public CanvasGroup newBestGroup;
+    public RectTransform newBestRect;
+
+    private float baselineSpeed = 8f;
+    private float maxSpeedEstimate = 24f;
+    private float smoothedFill;
+    private int lastCoins = -1;
+    private int startingBest;
+    private bool recordCaptured;
+    private bool newBestAnnounced;
+    private float newBestTimer;
+
+    private void Update()
+    {
+        GameManager gm = GameManager.Instance;
+        if (gm == null) return;
+
+        // Capture baseline speed & record once run is active
+        if (!recordCaptured && gm.ScoreSystem != null)
+        {
+            startingBest = gm.ScoreSystem.BestScore;
+            recordCaptured = true;
+            if (gm.Difficulty != null && gm.Difficulty.CurrentSpeed > 0.5f)
+            {
+                baselineSpeed = gm.Difficulty.CurrentSpeed;
+                maxSpeedEstimate = Mathf.Max(baselineSpeed * 2.6f, 24f);
+            }
+        }
+
+        // Coin pickup flash
+        int coins = gm.Coins;
+        if (lastCoins >= 0 && coins > lastCoins && coinCardFlash != null)
+            coinCardFlash.Trigger();
+        lastCoins = coins;
+
+        // Live speed telemetry
+        float speed = gm.Speed;
+        float ratio = Mathf.Clamp01(Mathf.InverseLerp(baselineSpeed, maxSpeedEstimate, speed));
+        float targetFill = Mathf.Lerp(0.14f, 1f, ratio);
+        smoothedFill = Mathf.Lerp(smoothedFill, targetFill, 1f - Mathf.Exp(-8f * Time.unscaledDeltaTime));
+
+        if (speedFillRect != null)
+            speedFillRect.anchorMax = new Vector2(Mathf.Clamp01(smoothedFill), 1f);
+
+        if (speedFillImage != null)
+        {
+            Color c = ratio < 0.5f
+                ? Color.Lerp(NeonUITheme.Cyan, NeonUITheme.Magenta, ratio * 2f)
+                : Color.Lerp(NeonUITheme.Magenta, NeonUITheme.Gold, (ratio - 0.5f) * 2f);
+            speedFillImage.color = c;
+        }
+
+        if (speedLabel != null)
+        {
+            float mult = baselineSpeed > 0.01f ? speed / baselineSpeed : 1f;
+            speedLabel.text = "SPD  " + mult.ToString("0.0") + "x";
+        }
+
+        // "NEW RECORD" toast when surpassing a non-zero prior high score
+        if (!newBestAnnounced && recordCaptured && startingBest > 0 && gm.Score > startingBest)
+        {
+            newBestAnnounced = true;
+            newBestTimer = 3.2f;
+            if (bestCardFlash != null) bestCardFlash.Trigger();
+        }
+
+        if (newBestGroup != null)
+        {
+            if (newBestTimer > 0f)
+            {
+                newBestTimer -= Time.unscaledDeltaTime;
+                float fadeIn = Mathf.Clamp01((3.2f - newBestTimer) / 0.25f);
+                float fadeOut = Mathf.Clamp01(newBestTimer / 0.45f);
+                newBestGroup.alpha = Mathf.Min(fadeIn, fadeOut);
+
+                if (newBestRect != null)
+                {
+                    float pulse = 1f + 0.045f * Mathf.Sin(Time.unscaledTime * 8f);
+                    float pop = Mathf.Lerp(0.84f, 1f, fadeIn);
+                    newBestRect.localScale = Vector3.one * (pop * pulse);
+                }
+            }
+            else if (newBestGroup.alpha > 0f)
+            {
+                newBestGroup.alpha = 0f;
+            }
+        }
     }
 }
